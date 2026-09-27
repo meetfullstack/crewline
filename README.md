@@ -39,6 +39,24 @@ apps/
 docker-compose.yml   Postgres + Redis for local development
 ```
 
+### Scheduling rules engine
+
+Every shift is checked by a pure, unit-tested rules engine (`apps/api/src/scheduling/conflicts.ts`). It runs when a week loads, live while a shift is being edited, and before publishing.
+
+| Check | Severity |
+| --- | --- |
+| Double-booked (overlaps another shift, at any location) | Error — blocks publishing |
+| Approved time off | Error — blocks publishing |
+| Employee on leave or terminated | Error — blocks publishing |
+| Pending time-off request | Warning |
+| Marked unavailable (checked on every local day an overnight shift touches) | Warning |
+| Less than 8h rest overnight ("clopen"); same-day split shifts are fine | Warning |
+| Over the employee's max weekly hours (flags only the shift that crosses the line) | Warning |
+| Over 44h/week (Ontario overtime threshold) | Warning |
+| Position the employee isn't trained for | Warning |
+
+Shifts are stored in UTC and edited in the location's local time, so overnight closes and DST changes are handled correctly.
+
 Security notes:
 
 - Access tokens live 15 minutes. Refresh tokens are random, stored only as SHA-256 hashes, and rotated on every use. Reusing an old refresh token revokes the whole session family.
