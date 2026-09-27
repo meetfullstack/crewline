@@ -1,6 +1,9 @@
 // Shapes returned by the Crewline API.
 
 export type Role = "OWNER" | "MANAGER" | "EMPLOYEE";
+export type EmploymentStatus = "ACTIVE" | "ON_LEAVE" | "TERMINATED";
+export type EmploymentType = "FULL_TIME" | "PART_TIME" | "CASUAL";
+export type AvailabilityKind = "AVAILABLE" | "PREFERRED" | "UNAVAILABLE";
 
 export interface Me {
   id: string;
@@ -12,3 +15,74 @@ export interface Me {
 
 export const isManager = (role: Role | undefined) =>
   role === "OWNER" || role === "MANAGER";
+
+export interface Position {
+  id: string;
+  name: string;
+  color: string;
+  _count?: { employees: number };
+}
+
+export interface Location {
+  id: string;
+  name: string;
+  address: string | null;
+  timezone: string;
+  weekStartsOn: number;
+}
+
+export interface EmployeeSummary {
+  id: string;
+  firstName: string;
+  lastName: string;
+  email: string | null;
+  phone: string | null;
+  status: EmploymentStatus;
+  employmentType: EmploymentType;
+  hourlyRate: number;
+  maxWeeklyHours: number | null;
+  hireDate: string | null;
+  role: Role | null;
+  positions: (Pick<Position, "id" | "name" | "color"> & {
+    isPrimary: boolean;
+  })[];
+  locations: { id: string; name: string }[];
+  certificationAlerts: { expired: number; expiringSoon: number };
+}
+
+export interface Certification {
+  id: string;
+  name: string;
+  issuedAt: string | null;
+  expiresAt: string | null;
+}
+
+export interface AvailabilityBlock {
+  id?: string;
+  dayOfWeek: number;
+  startMinute: number;
+  endMinute: number;
+  kind: AvailabilityKind;
+}
+
+export interface EmployeeDetail extends EmployeeSummary {
+  notes: string | null;
+  createdAt: string;
+  account: { role: Role; email: string; lastLoginAt: string | null } | null;
+  certifications: Certification[];
+  availability: AvailabilityBlock[];
+}
+
+export interface EmployeeInput {
+  firstName: string;
+  lastName: string;
+  email?: string;
+  phone?: string;
+  employmentType: EmploymentType;
+  status: EmploymentStatus;
+  hourlyRate: number;
+  maxWeeklyHours: number | null;
+  hireDate: string | null;
+  notes: string | null;
+  positionIds: string[];
+}

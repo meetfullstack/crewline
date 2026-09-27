@@ -6,7 +6,10 @@ import { AuthModule } from './auth/auth.module.js';
 import { JwtAuthGuard } from './auth/guards/jwt-auth.guard.js';
 import { RolesGuard } from './auth/guards/roles.guard.js';
 import { validateEnv } from './config/env.js';
+import { EmployeesModule } from './employees/employees.module.js';
 import { HealthController } from './health/health.controller.js';
+import { LocationsController } from './locations/locations.controller.js';
+import { PositionsModule } from './positions/positions.module.js';
 import { PrismaModule } from './prisma/prisma.module.js';
 
 @Module({
@@ -15,8 +18,10 @@ import { PrismaModule } from './prisma/prisma.module.js';
     ThrottlerModule.forRoot([{ ttl: 60_000, limit: 300 }]),
     PrismaModule,
     AuthModule,
+    EmployeesModule,
+    PositionsModule,
   ],
-  controllers: [HealthController],
+  controllers: [HealthController, LocationsController],
   providers: [
     // Order matters: rate-limit, then authenticate, then authorize.
     { provide: APP_GUARD, useClass: ThrottlerGuard },

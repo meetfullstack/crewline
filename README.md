@@ -11,7 +11,7 @@ Managers build the week on a drag-and-drop schedule, see labour cost as they go,
 | Module | Status |
 | --- | --- |
 | Auth with Owner / Manager / Employee roles | ✅ Done |
-| Employee management (profiles, positions, availability, certifications) | 🚧 Next |
+| Employee management (directory, profiles, positions, availability, certifications) | ✅ Done |
 | Schedule builder (drag and drop, conflict checks, copy week, publish) | 🚧 Next |
 | Employee portal (my shifts, availability, time off) | 🚧 Next |
 | Manager dashboard (staffing today, labour cost, warnings) | Planned |
