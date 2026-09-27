@@ -19,13 +19,15 @@
     "test": "npm run test --workspaces --if-present",
     "db:up": "docker compose up -d",
     "db:down": "docker compose down",
-    "db:migrate": "npm run db:migrate -w @crewline/api"
+    "db:migrate": "npm run db:migrate -w @crewline/api",
+    "db:seed": "npm run db:seed -w @crewline/api"
   },
   "allowScripts": {
     "@scarf/scarf": false,
     "unrs-resolver@1.12.2": true,
     "prisma@7.10.0": true,
-    "@prisma/engines@7.10.0": true
+    "@prisma/engines@7.10.0": true,
+    "esbuild@0.28.2": true
   },
   "devDependencies": {
     "concurrently": "^10.0.5"

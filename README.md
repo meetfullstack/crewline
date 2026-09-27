@@ -60,14 +60,27 @@ npm run db:up
 cp .env.example apps/api/.env          # then set real JWT secrets
 echo "API_URL=http://localhost:4000" > apps/web/.env.local
 
-# 4. Create the database schema
+# 4. Create the database schema and load demo data
 npm run db:migrate
+npm run db:seed
 
 # 5. Run the API and web app together
 npm run dev
 ```
 
 Open http://localhost:3300 for the app and http://localhost:4000/api/docs for the API reference.
+
+### Demo data
+
+`npm run db:seed` creates **Harbour & Vine — King Street**, a fictional Toronto restaurant. It has 14 staff across 7 positions, a published schedule for this week, a draft for next week with an open shift, pending time-off requests, and an expired certification to trigger warnings. Re-running it resets the demo.
+
+| Role | Email | Password |
+| --- | --- | --- |
+| Owner | `owner@harbourvine.test` | `crewline-demo` |
+| Manager | `manager@harbourvine.test` | `crewline-demo` |
+| Employee | `maya@harbourvine.test` | `crewline-demo` |
+
+These accounts exist only in your local database.
 
 ## Scripts
 
@@ -79,3 +92,4 @@ Open http://localhost:3300 for the app and http://localhost:4000/api/docs for th
 | `npm test` | Vitest unit tests in every workspace |
 | `npm run db:up` / `db:down` | Start or stop Postgres and Redis |
 | `npm run db:migrate` | Apply Prisma migrations in development |
+| `npm run db:seed` | Reset and load the demo restaurant |
