@@ -1,0 +1,293 @@
+// Crewline data model.
+//
+// Tenancy: every business record hangs off an Organization (a restaurant
+// group). A group runs one or more Locations; staff can work at several.
+// Times are stored as UTC timestamps; each Location carries its IANA time
+// zone so weeks, days and availability windows are computed locally.
+
+generator client {
+  provider = "prisma-client"
+  output   = "../src/generated/prisma"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+// ─── Enums ───────────────────────────────────────────────────────────────
+
+enum Role {
+  OWNER
+  MANAGER
+  EMPLOYEE
+}
+
+enum EmploymentStatus {
+  ACTIVE
+  ON_LEAVE
+  TERMINATED
+}
+
+enum EmploymentType {
+  FULL_TIME
+  PART_TIME
+  CASUAL
+}
+
+enum AvailabilityKind {
+  AVAILABLE
+  PREFERRED
+  UNAVAILABLE
+}
+
+enum ScheduleStatus {
+  DRAFT
+  PUBLISHED
+}
+
+enum RequestStatus {
+  PENDING
+  APPROVED
+  DENIED
+  CANCELLED
+}
+
+enum TimeOffType {
+  VACATION
+  SICK
+  PERSONAL
+  UNPAID
+}
+
+// ─── Tenancy & accounts ──────────────────────────────────────────────────
+
+model Organization {
+  id        String   @id @default(cuid())
+  name      String
+  slug      String   @unique
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  users     User[]
+  locations Location[]
+  positions Position[]
+  employees Employee[]
+}
+
+model Location {
+  id             String   @id @default(cuid())
+  organizationId String
+  name           String
+  address        String?
+  timezone       String   @default("America/Toronto")
+  // Week start used by the schedule builder (0 = Sunday … 6 = Saturday).
+  weekStartsOn   Int      @default(1)
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+
+  organization Organization       @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  employees    EmployeeLocation[]
+  schedules    Schedule[]
+  shifts       Shift[]
+
+  @@index([organizationId])
+}
+
+// A login. Staff records (Employee) can exist before anyone has an account;
+// linking happens when an employee accepts an invite.
+model User {
+  id             String    @id @default(cuid())
+  organizationId String
+  email          String    @unique
+  passwordHash   String
+  role           Role      @default(EMPLOYEE)
+  lastLoginAt    DateTime?
+  createdAt      DateTime  @default(now())
+  updatedAt      DateTime  @updatedAt
+
+  organization    Organization     @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  employee        Employee?
+  refreshTokens   RefreshToken[]
+  reviewedTimeOff TimeOffRequest[] @relation("TimeOffReviewer")
+
+  @@index([organizationId])
+}
+
+// Refresh tokens are stored hashed and rotated on every use. A family id
+// lets us revoke the whole chain if a used token is ever replayed.
+model RefreshToken {
+  id         String    @id @default(cuid())
+  userId     String
+  tokenHash  String    @unique
+  familyId   String
+  expiresAt  DateTime
+  revokedAt  DateTime?
+  replacedBy String?
+  createdAt  DateTime  @default(now())
+  userAgent  String?
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@index([familyId])
+}
+
+// ─── Staff ───────────────────────────────────────────────────────────────
+
+model Position {
+  id             String   @id @default(cuid())
+  organizationId String
+  name           String
+  // Hex colour used for shift blocks in the schedule builder.
+  color          String   @default("#f97316")
+  createdAt      DateTime @default(now())
+
+  organization Organization       @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  employees    EmployeePosition[]
+  shifts       Shift[]
+
+  @@unique([organizationId, name])
+}
+
+model Employee {
+  id              String           @id @default(cuid())
+  organizationId  String
+  userId          String?          @unique
+  firstName       String
+  lastName        String
+  email           String?
+  phone           String?
+  status          EmploymentStatus @default(ACTIVE)
+  employmentType  EmploymentType   @default(PART_TIME)
+  // Stored in cents to avoid floating-point money.
+  hourlyRateCents Int              @default(0)
+  maxWeeklyHours  Int?
+  hireDate        DateTime?        @db.Date
+  notes           String?
+  createdAt       DateTime         @default(now())
+  updatedAt       DateTime         @updatedAt
+
+  organization   Organization       @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  user           User?              @relation(fields: [userId], references: [id], onDelete: SetNull)
+  locations      EmployeeLocation[]
+  positions      EmployeePosition[]
+  certifications Certification[]
+  availability   Availability[]
+  shifts         Shift[]
+  timeOff        TimeOffRequest[]
+
+  @@index([organizationId, status])
+}
+
+model EmployeeLocation {
+  employeeId String
+  locationId String
+
+  employee Employee @relation(fields: [employeeId], references: [id], onDelete: Cascade)
+  location Location @relation(fields: [locationId], references: [id], onDelete: Cascade)
+
+  @@id([employeeId, locationId])
+}
+
+model EmployeePosition {
+  employeeId String
+  positionId String
+  isPrimary  Boolean @default(false)
+
+  employee Employee @relation(fields: [employeeId], references: [id], onDelete: Cascade)
+  position Position @relation(fields: [positionId], references: [id], onDelete: Cascade)
+
+  @@id([employeeId, positionId])
+}
+
+// Food handler, Smart Serve, first aid, etc.
+model Certification {
+  id         String    @id @default(cuid())
+  employeeId String
+  name       String
+  issuedAt   DateTime? @db.Date
+  expiresAt  DateTime? @db.Date
+
+  employee Employee @relation(fields: [employeeId], references: [id], onDelete: Cascade)
+
+  @@index([employeeId])
+  @@index([expiresAt])
+}
+
+// Recurring weekly availability, in the location's local time.
+// Minutes are measured from local midnight (0–1440).
+model Availability {
+  id          String           @id @default(cuid())
+  employeeId  String
+  dayOfWeek   Int // 0 = Sunday … 6 = Saturday
+  startMinute Int
+  endMinute   Int
+  kind        AvailabilityKind @default(AVAILABLE)
+
+  employee Employee @relation(fields: [employeeId], references: [id], onDelete: Cascade)
+
+  @@index([employeeId, dayOfWeek])
+}
+
+// ─── Scheduling ──────────────────────────────────────────────────────────
+
+// One schedule per location per week. Shifts are edited as a draft and only
+// become visible to employees once the week is published.
+model Schedule {
+  id          String         @id @default(cuid())
+  locationId  String
+  weekStart   DateTime       @db.Date
+  status      ScheduleStatus @default(DRAFT)
+  publishedAt DateTime?
+  createdAt   DateTime       @default(now())
+  updatedAt   DateTime       @updatedAt
+
+  location Location @relation(fields: [locationId], references: [id], onDelete: Cascade)
+  shifts   Shift[]
+
+  @@unique([locationId, weekStart])
+}
+
+// A shift with no employee is an open shift that staff can pick up.
+model Shift {
+  id           String   @id @default(cuid())
+  scheduleId   String
+  locationId   String
+  positionId   String
+  employeeId   String?
+  startsAt     DateTime
+  endsAt       DateTime
+  breakMinutes Int      @default(0)
+  notes        String?
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  schedule Schedule  @relation(fields: [scheduleId], references: [id], onDelete: Cascade)
+  location Location  @relation(fields: [locationId], references: [id], onDelete: Cascade)
+  position Position  @relation(fields: [positionId], references: [id], onDelete: Restrict)
+  employee Employee? @relation(fields: [employeeId], references: [id], onDelete: SetNull)
+
+  @@index([scheduleId])
+  @@index([employeeId, startsAt])
+  @@index([locationId, startsAt])
+}
+
+model TimeOffRequest {
+  id           String        @id @default(cuid())
+  employeeId   String
+  type         TimeOffType   @default(VACATION)
+  startDate    DateTime      @db.Date
+  endDate      DateTime      @db.Date
+  reason       String?
+  status       RequestStatus @default(PENDING)
+  reviewedById String?
+  reviewedAt   DateTime?
+  reviewNote   String?
+  createdAt    DateTime      @default(now())
+
+  employee   Employee @relation(fields: [employeeId], references: [id], onDelete: Cascade)
+  reviewedBy User?    @relation("TimeOffReviewer", fields: [reviewedById], references: [id], onDelete: SetNull)
+
+  @@index([employeeId, startDate])
+  @@index([status])
+}

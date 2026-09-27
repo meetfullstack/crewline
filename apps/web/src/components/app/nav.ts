@@ -1,0 +1,35 @@
+import {
+  CalendarDays,
+  CalendarRange,
+  Clock3,
+  LayoutDashboard,
+  Plane,
+  Settings,
+  Users,
+  type LucideIcon,
+} from "lucide-react";
+import type { Role } from "@/lib/types";
+
+export interface NavItem {
+  href: string;
+  label: string;
+  icon: LucideIcon;
+}
+
+const MANAGER_NAV: NavItem[] = [
+  { href: "/dashboard", label: "Dashboard", icon: LayoutDashboard },
+  { href: "/schedule", label: "Schedule", icon: CalendarRange },
+  { href: "/employees", label: "Employees", icon: Users },
+  { href: "/time-off", label: "Time off", icon: Plane },
+  { href: "/settings", label: "Settings", icon: Settings },
+];
+
+const EMPLOYEE_NAV: NavItem[] = [
+  { href: "/dashboard", label: "My week", icon: LayoutDashboard },
+  { href: "/me/shifts", label: "My shifts", icon: CalendarDays },
+  { href: "/me/availability", label: "Availability", icon: Clock3 },
+  { href: "/time-off", label: "Time off", icon: Plane },
+];
+
+export const navFor = (role: Role | undefined) =>
+  role === "EMPLOYEE" ? EMPLOYEE_NAV : MANAGER_NAV;

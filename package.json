@@ -1,0 +1,33 @@
+{
+  "name": "crewline",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Workforce management and employee scheduling for restaurants and hospitality.",
+  "workspaces": [
+    "apps/*",
+    "packages/*"
+  ],
+  "engines": {
+    "node": ">=22"
+  },
+  "scripts": {
+    "dev": "concurrently -n api,web -c blue,magenta \"npm run dev:api\" \"npm run dev:web\"",
+    "dev:web": "npm run dev -w @crewline/web",
+    "dev:api": "npm run start:dev -w @crewline/api",
+    "build": "npm run build -w @crewline/api && npm run build -w @crewline/web",
+    "lint": "npm run lint --workspaces --if-present",
+    "test": "npm run test --workspaces --if-present",
+    "db:up": "docker compose up -d",
+    "db:down": "docker compose down",
+    "db:migrate": "npm run db:migrate -w @crewline/api"
+  },
+  "allowScripts": {
+    "@scarf/scarf": false,
+    "unrs-resolver@1.12.2": true,
+    "prisma@7.10.0": true,
+    "@prisma/engines@7.10.0": true
+  },
+  "devDependencies": {
+    "concurrently": "^10.0.5"
+  }
+}
