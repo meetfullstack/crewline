@@ -40,6 +40,18 @@ function refreshSession(): Promise<boolean> {
   return refreshing;
 }
 
+/** The session is gone (expired or revoked): send the user to sign in again. */
+function redirectToLogin() {
+  if (typeof window === "undefined" || window.location.pathname === "/login") {
+    return;
+  }
+  const next = window.location.pathname + window.location.search;
+  // A full reload (not router.push) is deliberate: it drops every cached
+  // query that belonged to the expired session.
+  // eslint-disable-next-line @next/next/no-location-assign-relative-destination
+  window.location.assign(`/login?next=${encodeURIComponent(next)}`);
+}
+
 async function toError(res: Response): Promise<ApiError> {
   let message = res.statusText || "Request failed";
   let details: string[] | undefined;
@@ -73,8 +85,12 @@ export async function api<T = unknown>(
     });
 
   let res = await send();
-  if (res.status === 401 && !noRefresh && (await refreshSession())) {
-    res = await send();
+  if (res.status === 401 && !noRefresh) {
+    if (await refreshSession()) {
+      res = await send();
+    } else {
+      redirectToLogin();
+    }
   }
 
   if (!res.ok) throw await toError(res);

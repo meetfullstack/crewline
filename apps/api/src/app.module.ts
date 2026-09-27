@@ -11,6 +11,7 @@ import { HealthController } from './health/health.controller.js';
 import { LocationsController } from './locations/locations.controller.js';
 import { PositionsModule } from './positions/positions.module.js';
 import { PrismaModule } from './prisma/prisma.module.js';
+import { SchedulingModule } from './scheduling/scheduling.module.js';
 
 @Module({
   imports: [
@@ -20,6 +21,7 @@ import { PrismaModule } from './prisma/prisma.module.js';
     AuthModule,
     EmployeesModule,
     PositionsModule,
+    SchedulingModule,
   ],
   controllers: [HealthController, LocationsController],
   providers: [
