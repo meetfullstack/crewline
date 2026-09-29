@@ -9,7 +9,8 @@ import { validateEnv } from './config/env.js';
 import { DashboardModule } from './dashboard/dashboard.module.js';
 import { EmployeesModule } from './employees/employees.module.js';
 import { HealthController } from './health/health.controller.js';
-import { LocationsController } from './locations/locations.controller.js';
+import { LocationsModule } from './locations/locations.module.js';
+import { OrganizationController } from './organization/organization.controller.js';
 import { PortalModule } from './portal/portal.module.js';
 import { PositionsModule } from './positions/positions.module.js';
 import { PrismaModule } from './prisma/prisma.module.js';
@@ -23,13 +24,14 @@ import { TimeOffModule } from './time-off/time-off.module.js';
     PrismaModule,
     AuthModule,
     EmployeesModule,
+    LocationsModule,
     PositionsModule,
     SchedulingModule,
     TimeOffModule,
     PortalModule,
     DashboardModule,
   ],
-  controllers: [HealthController, LocationsController],
+  controllers: [HealthController, OrganizationController],
   providers: [
     // Order matters: rate-limit, then authenticate, then authorize.
     { provide: APP_GUARD, useClass: ThrottlerGuard },

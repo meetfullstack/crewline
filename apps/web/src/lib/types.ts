@@ -29,6 +29,17 @@ export interface Location {
   address: string | null;
   timezone: string;
   weekStartsOn: number;
+  weeklyLaborBudget: number | null;
+  staffCount: number;
+  /** Time zone and week start are fixed once schedules exist. */
+  scheduleLocked: boolean;
+}
+
+export interface Organization {
+  id: string;
+  name: string;
+  slug: string;
+  createdAt: string;
 }
 
 export interface EmployeeSummary {
