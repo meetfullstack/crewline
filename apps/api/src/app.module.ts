@@ -6,6 +6,7 @@ import { AuthModule } from './auth/auth.module.js';
 import { JwtAuthGuard } from './auth/guards/jwt-auth.guard.js';
 import { RolesGuard } from './auth/guards/roles.guard.js';
 import { validateEnv } from './config/env.js';
+import { DashboardModule } from './dashboard/dashboard.module.js';
 import { EmployeesModule } from './employees/employees.module.js';
 import { HealthController } from './health/health.controller.js';
 import { LocationsController } from './locations/locations.controller.js';
@@ -26,6 +27,7 @@ import { TimeOffModule } from './time-off/time-off.module.js';
     SchedulingModule,
     TimeOffModule,
     PortalModule,
+    DashboardModule,
   ],
   controllers: [HealthController, LocationsController],
   providers: [

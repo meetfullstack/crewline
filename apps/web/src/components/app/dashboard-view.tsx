@@ -2,8 +2,8 @@
 
 import { EmployeeHome } from "@/components/portal/employee-home";
 import { Skeleton } from "@/components/ui/skeleton";
+import { ManagerDashboard } from "@/components/dashboard/manager-dashboard";
 import { useMe } from "@/hooks/use-me";
-import { DashboardGreeting } from "./dashboard-greeting";
 
 /** Staff get their personal week; managers get the operations dashboard. */
 export function DashboardView() {
@@ -17,15 +17,5 @@ export function DashboardView() {
       </div>
     );
   }
-  if (me?.role === "EMPLOYEE") return <EmployeeHome />;
-
-  return (
-    <div className="mx-auto grid max-w-6xl gap-6">
-      <DashboardGreeting />
-      <div className="rounded-xl border border-dashed p-10 text-center text-sm text-muted-foreground">
-        Today&apos;s staffing, labour cost and warnings will live here — that&apos;s
-        the next milestone.
-      </div>
-    </div>
-  );
+  return me?.role === "EMPLOYEE" ? <EmployeeHome /> : <ManagerDashboard />;
 }

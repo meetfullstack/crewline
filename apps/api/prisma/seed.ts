@@ -194,6 +194,7 @@ async function main() {
           address: '412 King St W, Toronto, ON',
           timezone: TZ,
           weekStartsOn: 1,
+          weeklyLaborBudgetCents: 9_000_00,
         },
       },
     },
@@ -343,6 +344,8 @@ async function main() {
   };
 
   const weeks = [
+    // Last week gives the dashboard something to compare against.
+    { start: addLocalDays(thisWeek, -7), status: ScheduleStatus.PUBLISHED },
     { start: thisWeek, status: ScheduleStatus.PUBLISHED },
     { start: nextWeek, status: ScheduleStatus.DRAFT },
   ];
@@ -350,7 +353,7 @@ async function main() {
   for (const week of weeks) {
     let shifts = weekTemplate().map((slot) => staff(week.start, toShift(week.start, slot)));
 
-    if (week.status === ScheduleStatus.PUBLISHED) {
+    if (week.start === thisWeek) {
       // Extra weekend cover posted for staff to pick up in the portal.
       shifts.push(
         toShift(week.start, [4, 'server', 11, 16]),

@@ -75,15 +75,17 @@ model Organization {
 }
 
 model Location {
-  id             String   @id @default(cuid())
-  organizationId String
-  name           String
-  address        String?
-  timezone       String   @default("America/Toronto")
+  id                     String   @id @default(cuid())
+  organizationId         String
+  name                   String
+  address                String?
+  timezone               String   @default("America/Toronto")
   // Week start used by the schedule builder (0 = Sunday … 6 = Saturday).
-  weekStartsOn   Int      @default(1)
-  createdAt      DateTime @default(now())
-  updatedAt      DateTime @updatedAt
+  weekStartsOn           Int      @default(1)
+  // Target wage spend per week, in cents. Optional.
+  weeklyLaborBudgetCents Int?
+  createdAt              DateTime @default(now())
+  updatedAt              DateTime @updatedAt
 
   organization Organization       @relation(fields: [organizationId], references: [id], onDelete: Cascade)
   employees    EmployeeLocation[]
