@@ -35,6 +35,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import {
   useDeleteEmployee,
   useEmployee,
+  useReplaceAvailability,
   useUpdateEmployee,
 } from "@/hooks/use-employees";
 import { ApiError } from "@/lib/api";
@@ -53,6 +54,7 @@ export function EmployeeProfile({ id }: { id: string }) {
   const router = useRouter();
   const { data: employee, isPending, isError, error } = useEmployee(id);
   const update = useUpdateEmployee(id);
+  const replaceAvailability = useReplaceAvailability(id);
   const remove = useDeleteEmployee();
   const [confirmDelete, setConfirmDelete] = useState(false);
   // Bumped after a save so the details form resets to the saved values.
@@ -218,7 +220,10 @@ export function EmployeeProfile({ id }: { id: string }) {
         </TabsContent>
 
         <TabsContent value="availability" className="mt-4">
-          <AvailabilityEditor employee={employee} />
+          <AvailabilityEditor
+            availability={employee.availability}
+            onSave={(blocks) => replaceAvailability.mutateAsync(blocks)}
+          />
         </TabsContent>
 
         <TabsContent value="certifications" className="mt-4">

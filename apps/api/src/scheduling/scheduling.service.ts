@@ -1,6 +1,7 @@
 import {
   BadRequestException,
   ConflictException,
+  ForbiddenException,
   Injectable,
   NotFoundException,
 } from '@nestjs/common';
@@ -354,6 +355,136 @@ export class SchedulingService {
       data: { status: ScheduleStatus.PUBLISHED, publishedAt: now, updatedAt: now },
     });
     return { publishedAt: now, shifts: week.shifts.length };
+  }
+
+  // ─── Employee portal ───────────────────────────────────────────────────
+  // Staff only ever see published weeks.
+
+  /** The employee's published shifts from `fromDays` ago to `toDays` ahead. */
+  async myShifts(organizationId: string, employeeId: string, fromDays = 1, toDays = 28) {
+    const now = Date.now();
+    const shifts = await this.prisma.shift.findMany({
+      where: {
+        employeeId,
+        location: { organizationId },
+        schedule: { status: ScheduleStatus.PUBLISHED },
+        endsAt: { gte: new Date(now - fromDays * DAY_MS) },
+        startsAt: { lt: new Date(now + toDays * DAY_MS) },
+      },
+      orderBy: { startsAt: 'asc' },
+      select: {
+        ...shiftSelect,
+        position: { select: { name: true, color: true } },
+        location: { select: { name: true, timezone: true } },
+        employee: { select: { hourlyRateCents: true } },
+      },
+    });
+    return shifts.map(({ position, location, employee, ...shift }) => ({
+      ...this.view(shift, location.timezone, (employee?.hourlyRateCents ?? 0) / 100),
+      position,
+      location: { name: location.name },
+    }));
+  }
+
+  /**
+   * Upcoming open shifts in published weeks that this employee could work:
+   * at one of their locations and for a position they're trained in. Each
+   * comes with the conflicts it would cause for them.
+   */
+  async openShiftsFor(organizationId: string, employeeId: string) {
+    const employee = await this.portalEmployee(organizationId, employeeId);
+    const shifts = await this.prisma.shift.findMany({
+      where: {
+        employeeId: null,
+        locationId: { in: employee.locations.map((l) => l.locationId) },
+        positionId: { in: employee.positions.map((p) => p.positionId) },
+        schedule: { status: ScheduleStatus.PUBLISHED },
+        startsAt: { gt: new Date() },
+      },
+      orderBy: { startsAt: 'asc' },
+      take: 50,
+      select: {
+        ...shiftSelect,
+        position: { select: { name: true, color: true } },
+        location: { select: { id: true, name: true, timezone: true, weekStartsOn: true } },
+      },
+    });
+
+    return Promise.all(
+      shifts.map(async ({ position, location, ...shift }) => {
+        const conflicts = await this.conflictsFor(organizationId, location, {
+          ...shift,
+          employeeId,
+        });
+        return {
+          ...this.view(shift, location.timezone, employee.hourlyRateCents / 100),
+          cost: round2(paidHours(shift) * (employee.hourlyRateCents / 100)),
+          position,
+          location: { name: location.name },
+          conflicts,
+          canClaim: !conflicts.some((c) => c.severity === 'error'),
+        };
+      }),
+    );
+  }
+
+  /** First come, first served — guarded so two people can't claim one shift. */
+  async claimOpenShift(organizationId: string, employeeId: string, shiftId: string) {
+    const employee = await this.portalEmployee(organizationId, employeeId);
+    const shift = await this.prisma.shift.findFirst({
+      where: { id: shiftId, location: { organizationId } },
+      select: {
+        ...shiftSelect,
+        schedule: { select: { status: true } },
+        location: { select: { id: true, name: true, timezone: true, weekStartsOn: true } },
+      },
+    });
+    if (!shift || shift.schedule.status !== ScheduleStatus.PUBLISHED) {
+      throw new NotFoundException('Shift not found');
+    }
+    if (shift.employeeId) throw new ConflictException('Someone already picked up this shift');
+    if (shift.startsAt <= new Date()) throw new BadRequestException('This shift has already started');
+    if (
+      !employee.positions.some((p) => p.positionId === shift.positionId) ||
+      !employee.locations.some((l) => l.locationId === shift.locationId)
+    ) {
+      throw new ForbiddenException('You aren’t set up to work this shift');
+    }
+
+    const conflicts = await this.conflictsFor(organizationId, shift.location, {
+      ...shift,
+      employeeId,
+    });
+    const blocking = conflicts.find((c) => c.severity === 'error');
+    if (blocking) throw new ConflictException(blocking.message);
+
+    const claimed = await this.prisma.$transaction(async (tx) => {
+      const { count } = await tx.shift.updateMany({
+        where: { id: shiftId, employeeId: null },
+        data: { employeeId },
+      });
+      if (count === 0) throw new ConflictException('Someone just picked up this shift');
+      await this.touch(tx, shift.scheduleId);
+      return tx.shift.findUniqueOrThrow({ where: { id: shiftId }, select: shiftSelect });
+    });
+    return this.view(claimed, shift.location.timezone, employee.hourlyRateCents / 100, conflicts);
+  }
+
+  private async portalEmployee(organizationId: string, employeeId: string) {
+    const employee = await this.prisma.employee.findFirst({
+      where: { id: employeeId, organizationId },
+      select: {
+        status: true,
+        hourlyRateCents: true,
+        positions: { select: { positionId: true } },
+        locations: { select: { locationId: true } },
+      },
+    });
+    if (!employee) throw new NotFoundException('Employee not found');
+    if (employee.status !== EmploymentStatus.ACTIVE) {
+      throw new ForbiddenException('Only active staff can pick up shifts');
+    }
+    return employee;
   }
 
   // ─── Helpers ───────────────────────────────────────────────────────────

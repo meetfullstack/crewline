@@ -350,6 +350,15 @@ async function main() {
   for (const week of weeks) {
     let shifts = weekTemplate().map((slot) => staff(week.start, toShift(week.start, slot)));
 
+    if (week.status === ScheduleStatus.PUBLISHED) {
+      // Extra weekend cover posted for staff to pick up in the portal.
+      shifts.push(
+        toShift(week.start, [4, 'server', 11, 16]),
+        toShift(week.start, [5, 'host', 17, 22]),
+        toShift(week.start, [6, 'bartender', 18, 24]),
+      );
+    }
+
     if (week.status === ScheduleStatus.DRAFT) {
       // Still being built: a couple of slots not created yet...
       shifts = shifts.filter((_, i) => i % 9 !== 4);

@@ -9,9 +9,11 @@ import { validateEnv } from './config/env.js';
 import { EmployeesModule } from './employees/employees.module.js';
 import { HealthController } from './health/health.controller.js';
 import { LocationsController } from './locations/locations.controller.js';
+import { PortalModule } from './portal/portal.module.js';
 import { PositionsModule } from './positions/positions.module.js';
 import { PrismaModule } from './prisma/prisma.module.js';
 import { SchedulingModule } from './scheduling/scheduling.module.js';
+import { TimeOffModule } from './time-off/time-off.module.js';
 
 @Module({
   imports: [
@@ -22,6 +24,8 @@ import { SchedulingModule } from './scheduling/scheduling.module.js';
     EmployeesModule,
     PositionsModule,
     SchedulingModule,
+    TimeOffModule,
+    PortalModule,
   ],
   controllers: [HealthController, LocationsController],
   providers: [

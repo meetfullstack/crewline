@@ -25,6 +25,15 @@ export function formatDateOnly(value: string | null | undefined) {
   });
 }
 
+/** A real moment in time (e.g. createdAt), shown as the viewer's local day. */
+export function formatTimestampDay(value: string) {
+  return new Date(value).toLocaleDateString("en-CA", {
+    year: "numeric",
+    month: "short",
+    day: "numeric",
+  });
+}
+
 /** `yyyy-MM-dd` for a date input, from a date-only API value. */
 export const toDateInput = (value: string | null | undefined) =>
   value ? value.slice(0, 10) : "";

@@ -12,14 +12,12 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { useReplaceAvailability } from "@/hooks/use-employees";
 import { ApiError } from "@/lib/api";
 import { availabilityProblem, WEEK_ORDER } from "@/lib/availability";
 import { DAY_NAMES, formatMinutes } from "@/lib/format";
 import type {
   AvailabilityBlock,
   AvailabilityKind,
-  EmployeeDetail,
 } from "@/lib/types";
 
 type Draft = AvailabilityBlock & { key: string };
@@ -58,17 +56,25 @@ const withKey = (block: AvailabilityBlock): Draft => ({
   key: `b${nextKey++}`,
 });
 
-export function AvailabilityEditor({ employee }: { employee: EmployeeDetail }) {
-  const save = useReplaceAvailability(employee.id);
-  const [saved, setSaved] = useState(employee.availability);
-  const [drafts, setDrafts] = useState<Draft[]>(() =>
-    employee.availability.map(withKey),
-  );
+interface AvailabilityEditorProps {
+  availability: AvailabilityBlock[];
+  onSave: (blocks: AvailabilityBlock[]) => Promise<unknown>;
+  description?: string;
+}
+
+export function AvailabilityEditor({
+  availability,
+  onSave,
+  description = "Anything not marked is treated as available. The schedule builder warns before booking over these times.",
+}: AvailabilityEditorProps) {
+  const [saving, setSaving] = useState(false);
+  const [saved, setSaved] = useState(availability);
+  const [drafts, setDrafts] = useState<Draft[]>(() => availability.map(withKey));
 
   // Pick up server changes (e.g. after a save) without clobbering edits.
-  if (saved !== employee.availability) {
-    setSaved(employee.availability);
-    setDrafts(employee.availability.map(withKey));
+  if (saved !== availability) {
+    setSaved(availability);
+    setDrafts(availability.map(withKey));
   }
 
   const problem = availabilityProblem(drafts);
@@ -93,12 +99,15 @@ export function AvailabilityEditor({ employee }: { employee: EmployeeDetail }) {
     ]);
   };
 
-  const onSave = async () => {
+  const save = async () => {
+    setSaving(true);
     try {
-      await save.mutateAsync(drafts);
+      await onSave(drafts);
       toast.success("Availability saved");
     } catch (error) {
       toast.error(error instanceof ApiError ? error.message : "Couldn't save");
+    } finally {
+      setSaving(false);
     }
   };
 
@@ -107,10 +116,7 @@ export function AvailabilityEditor({ employee }: { employee: EmployeeDetail }) {
       <div className="flex flex-wrap items-center justify-between gap-3 border-b px-5 py-4">
         <div>
           <h2 className="font-medium">Weekly availability</h2>
-          <p className="text-sm text-muted-foreground">
-            Anything not marked is treated as available. The schedule builder
-            warns before booking over these times.
-          </p>
+          <p className="text-sm text-muted-foreground">{description}</p>
         </div>
         <ul className="flex gap-4 text-xs text-muted-foreground">
           {Object.values(KIND).map((k) => (
@@ -213,16 +219,16 @@ export function AvailabilityEditor({ employee }: { employee: EmployeeDetail }) {
         )}
         <Button
           variant="outline"
-          disabled={!dirty || save.isPending}
+          disabled={!dirty || saving}
           onClick={() => setDrafts(saved.map(withKey))}
         >
           Reset
         </Button>
         <Button
-          disabled={!dirty || Boolean(problem) || save.isPending}
-          onClick={onSave}
+          disabled={!dirty || Boolean(problem) || saving}
+          onClick={save}
         >
-          {save.isPending && <Loader2 className="animate-spin" />}
+          {saving && <Loader2 className="animate-spin" />}
           Save availability
         </Button>
       </div>

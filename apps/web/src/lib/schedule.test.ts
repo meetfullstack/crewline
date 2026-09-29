@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 import {
   addDays,
+  asSecondPerson,
   cellId,
   dayOfWeek,
   formatWeekRange,
@@ -37,6 +38,17 @@ describe("schedule helpers", () => {
       date: "2026-09-28",
     });
     expect(parseCellId(cellId(null, "2026-09-28")).employeeId).toBeNull();
+  });
+
+  it("rewrites rules-engine messages for the employee reading them", () => {
+    expect(asSecondPerson("Maya is already working Fri 5pm–1am")).toBe(
+      "You're already working Fri 5pm–1am",
+    );
+    expect(asSecondPerson("Maya isn't trained as Bartender")).toBe(
+      "You aren't trained as Bartender",
+    );
+    expect(asSecondPerson("Maya has approved time off")).toBe("You have approved time off");
+    expect(asSecondPerson("Only 6h rest between shifts")).toBe("Only 6h rest between shifts");
   });
 
   it("prefers approved time off over a pending request on the same day", () => {

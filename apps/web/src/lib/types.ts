@@ -73,6 +73,31 @@ export interface EmployeeDetail extends EmployeeSummary {
   availability: AvailabilityBlock[];
 }
 
+export type RequestStatus = "PENDING" | "APPROVED" | "DENIED" | "CANCELLED";
+export type TimeOffType = "VACATION" | "SICK" | "PERSONAL" | "UNPAID";
+
+export interface TimeOffRequest {
+  id: string;
+  type: TimeOffType;
+  status: RequestStatus;
+  startDate: string;
+  endDate: string;
+  days: number;
+  reason: string | null;
+  reviewNote: string | null;
+  reviewedAt: string | null;
+  createdAt: string;
+  employee: {
+    id: string;
+    firstName: string;
+    lastName: string;
+    position: { name: string; color: string } | null;
+  };
+  reviewedBy: { firstName: string; lastName: string } | null;
+  /** Shifts already booked during the request (pending or approved only). */
+  scheduledShifts: number;
+}
+
 export interface EmployeeInput {
   firstName: string;
   lastName: string;

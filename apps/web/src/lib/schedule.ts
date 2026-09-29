@@ -162,3 +162,10 @@ export function parseCellId(id: string) {
   const [row, date] = id.split("|");
   return { employeeId: row === OPEN_ROW ? null : row, date };
 }
+
+/** Rules-engine messages name the employee; staff read them about themselves. */
+export function asSecondPerson(message: string) {
+  return message.replace(/^\S+ (isn't|is|has)\b/, (_, verb: string) =>
+    verb === "is" ? "You're" : verb === "has" ? "You have" : "You aren't",
+  );
+}

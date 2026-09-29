@@ -1,5 +1,6 @@
 import {
   CalendarDays,
+  CalendarPlus,
   CalendarRange,
   Clock3,
   LayoutDashboard,
@@ -27,6 +28,7 @@ const MANAGER_NAV: NavItem[] = [
 const EMPLOYEE_NAV: NavItem[] = [
   { href: "/dashboard", label: "My week", icon: LayoutDashboard },
   { href: "/me/shifts", label: "My shifts", icon: CalendarDays },
+  { href: "/me/open-shifts", label: "Open shifts", icon: CalendarPlus },
   { href: "/me/availability", label: "Availability", icon: Clock3 },
   { href: "/time-off", label: "Time off", icon: Plane },
 ];
