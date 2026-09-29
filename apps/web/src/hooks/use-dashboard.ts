@@ -61,6 +61,7 @@ export interface Dashboard {
       employee: { firstName: string; lastName: string };
     }[];
   };
+  swapsAwaitingApproval: number;
   certifications: {
     id: string;
     name: string;

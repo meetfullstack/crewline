@@ -110,6 +110,7 @@ const STAFF: Staff[] = [
   },
   {
     first: 'Sofia', last: 'Nguyen', positions: ['server'], type: 'PART_TIME', rate: 17.6, maxHours: 30,
+    login: { email: 'sofia@harbourvine.test', role: Role.EMPLOYEE },
     unavailable: { 0: [0, 24] },
     certs: [{ name: 'Smart Serve', expiresInDays: 250 }],
   },
@@ -127,6 +128,7 @@ const STAFF: Staff[] = [
   },
   {
     first: 'Chloé', last: 'Martin', positions: ['server', 'bartender'], type: 'PART_TIME', rate: 17.6, maxHours: 28,
+    login: { email: 'chloe@harbourvine.test', role: Role.EMPLOYEE },
     unavailable: { 3: [0, 24] },
     certs: [{ name: 'Smart Serve', expiresInDays: 600 }],
   },
@@ -136,12 +138,14 @@ const STAFF: Staff[] = [
   },
   {
     first: 'Grace', last: 'Liu', positions: ['host', 'server'], type: 'CASUAL', rate: 17.2, maxHours: 20,
+    login: { email: 'grace@harbourvine.test', role: Role.EMPLOYEE },
   },
   {
     first: 'Tomás', last: 'García', positions: ['dishwasher'], type: 'CASUAL', rate: 17.2, maxHours: 28,
   },
   {
     first: 'Elena', last: 'Rossi', positions: ['server', 'bartender'], type: 'FULL_TIME', rate: 18.5, maxHours: 40,
+    login: { email: 'elena@harbourvine.test', role: Role.EMPLOYEE },
     certs: [{ name: 'Smart Serve', expiresInDays: 900 }],
   },
   {
@@ -398,6 +402,49 @@ async function main() {
       data: shifts.map((s) => ({ ...s, scheduleId: schedule.id, locationId: location.id })),
     });
     total += shifts.length;
+  }
+
+  // ─── Shift swaps in flight ───────────────────────────────────────────
+  // Picked from published shifts at least two days out so they stay valid.
+  const laterShift = (first: string, positionKey: PositionKey) =>
+    prisma.shift.findFirst({
+      where: {
+        employeeId: person(first).ctx.id,
+        positionId: positionIds[positionKey],
+        schedule: { status: ScheduleStatus.PUBLISHED },
+        startsAt: { gt: new Date(Date.now() + 2 * 24 * 60 * 60 * 1000) },
+      },
+      orderBy: { startsAt: 'asc' },
+      select: { id: true },
+    });
+
+  const sofiaShift = await laterShift('Sofia', 'server');
+  if (sofiaShift) {
+    await prisma.shiftSwap.create({
+      data: {
+        requesterId: person('Sofia').ctx.id,
+        shiftId: sofiaShift.id,
+        targetEmployeeId: person('Maya').ctx.id,
+        message: 'Any chance you could cover? My sister is visiting.',
+      },
+    });
+  }
+  const [graceShift, elenaShift] = await Promise.all([
+    laterShift('Grace', 'server'),
+    laterShift('Elena', 'server'),
+  ]);
+  if (graceShift && elenaShift) {
+    await prisma.shiftSwap.create({
+      data: {
+        requesterId: person('Grace').ctx.id,
+        shiftId: graceShift.id,
+        targetEmployeeId: person('Elena').ctx.id,
+        targetShiftId: elenaShift.id,
+        message: 'Trade you — I have a class that day.',
+        status: 'PENDING_MANAGER',
+        respondedAt: new Date(),
+      },
+    });
   }
 
   console.log(

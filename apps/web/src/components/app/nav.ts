@@ -5,6 +5,7 @@ import {
   Clock3,
   LayoutDashboard,
   Plane,
+  Repeat,
   Settings,
   Users,
   type LucideIcon,
@@ -22,6 +23,7 @@ const MANAGER_NAV: NavItem[] = [
   { href: "/schedule", label: "Schedule", icon: CalendarRange },
   { href: "/employees", label: "Employees", icon: Users },
   { href: "/time-off", label: "Time off", icon: Plane },
+  { href: "/swaps", label: "Swaps", icon: Repeat },
   { href: "/settings", label: "Settings", icon: Settings },
 ];
 
@@ -29,6 +31,7 @@ const EMPLOYEE_NAV: NavItem[] = [
   { href: "/dashboard", label: "My week", icon: LayoutDashboard },
   { href: "/me/shifts", label: "My shifts", icon: CalendarDays },
   { href: "/me/open-shifts", label: "Open shifts", icon: CalendarPlus },
+  { href: "/swaps", label: "Swaps", icon: Repeat },
   { href: "/me/availability", label: "Availability", icon: Clock3 },
   { href: "/time-off", label: "Time off", icon: Plane },
 ];

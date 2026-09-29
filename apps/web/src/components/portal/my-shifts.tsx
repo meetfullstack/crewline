@@ -1,9 +1,12 @@
 "use client";
 
-import { CalendarDays } from "lucide-react";
+import { CalendarDays, Repeat } from "lucide-react";
+import Link from "next/link";
 import { useState } from "react";
+import { SwapDialog } from "@/components/swaps/swap-dialog";
+import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
-import { type MyShift, useMyShifts } from "@/hooks/use-portal";
+import { type MyShift, useMyShifts, useMySwaps } from "@/hooks/use-portal";
 import { formatMoney } from "@/lib/format";
 import { addDays, dayOfWeek, formatWeekRange } from "@/lib/schedule";
 import { ShiftRow } from "./shift-row";
@@ -13,7 +16,16 @@ const mondayOf = (date: string) => addDays(date, -((dayOfWeek(date) + 6) % 7));
 
 export function MyShifts() {
   const { data: shifts, isPending, isError } = useMyShifts();
+  const { data: swaps } = useMySwaps();
   const [now] = useState(() => Date.now());
+  const [swapping, setSwapping] = useState<MyShift | null>(null);
+
+  // Shifts already part of a swap that's still in progress.
+  const inSwap = new Set(
+    (swaps ?? [])
+      .filter((s) => s.status === "PENDING_COWORKER" || s.status === "PENDING_MANAGER")
+      .flatMap((s) => [s.shift?.id, s.targetShift?.id]),
+  );
 
   const weeks = new Map<string, MyShift[]>();
   for (const shift of shifts ?? []) {
@@ -26,7 +38,8 @@ export function MyShifts() {
       <div>
         <h1 className="text-2xl font-semibold tracking-tight">My shifts</h1>
         <p className="mt-1 text-sm text-muted-foreground">
-          Your published shifts for the next four weeks.
+          Your published shifts for the next four weeks. Can&apos;t make one? Press
+          Swap to ask a coworker.
         </p>
       </div>
 
@@ -58,17 +71,33 @@ export function MyShifts() {
               </p>
             </header>
             <div className="divide-y">
-              {weekShifts.map((s) => (
-                <ShiftRow
-                  key={s.id}
-                  shift={s}
-                  muted={new Date(s.endsAt).getTime() < now}
-                />
-              ))}
+              {weekShifts.map((s) => {
+                const upcoming = new Date(s.startsAt).getTime() > now;
+                return (
+                  <ShiftRow
+                    key={s.id}
+                    shift={s}
+                    muted={new Date(s.endsAt).getTime() < now}
+                    action={
+                      !upcoming ? null : inSwap.has(s.id) ? (
+                        <Button variant="ghost" size="sm" asChild>
+                          <Link href="/swaps">Swap pending</Link>
+                        </Button>
+                      ) : (
+                        <Button variant="outline" size="sm" onClick={() => setSwapping(s)}>
+                          <Repeat /> Swap
+                        </Button>
+                      )
+                    }
+                  />
+                );
+              })}
             </div>
           </section>
         );
       })}
+
+      <SwapDialog shift={swapping} onClose={() => setSwapping(null)} />
     </div>
   );
 }

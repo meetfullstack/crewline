@@ -8,6 +8,7 @@ import {
   CheckCircle2,
   CircleAlert,
   Plane,
+  Repeat,
   UserPlus,
 } from "lucide-react";
 import Link from "next/link";
@@ -305,6 +306,16 @@ function Attention({ data }: { data: Dashboard }) {
       title: `${data.pendingTimeOff.count} time-off request${data.pendingTimeOff.count > 1 ? "s" : ""} to review`,
       detail: first && `Next: ${first.employee.firstName}, ${formatDateOnly(first.startDate)}`,
       href: "/time-off",
+    });
+  }
+  if (data.swapsAwaitingApproval) {
+    items.push({
+      key: "swaps",
+      icon: Repeat,
+      tone: "info",
+      title: `${data.swapsAwaitingApproval} shift swap${data.swapsAwaitingApproval > 1 ? "s" : ""} to approve`,
+      detail: "Your team has agreed; they need your sign-off",
+      href: "/swaps",
     });
   }
   if (data.openShiftsNext7Days) {

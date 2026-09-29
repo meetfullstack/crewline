@@ -15,7 +15,7 @@ Managers build the week on a drag-and-drop schedule, see labour cost as they go,
 | Schedule builder (drag and drop, live conflict checks, labour cost, copy week, publish) | ✅ Done |
 | Employee portal (my week, availability, time-off requests, open-shift pickup) | ✅ Done |
 | Manager dashboard (who's on now, labour vs budget and last week, needs-attention list) | ✅ Done |
-| Shift swaps | Planned |
+| Shift swaps (cover or trade, coworker accepts, manager approves with conflict checks) | ✅ Done |
 | Time & attendance (clock in/out, breaks, overtime) | Planned |
 | Labour analytics | Planned |
 
@@ -90,13 +90,14 @@ Open http://localhost:3300 for the app and http://localhost:4000/api/docs for th
 
 ### Demo data
 
-`npm run db:seed` creates **Harbour & Vine — King Street**, a fictional Toronto restaurant. It has 14 staff across 7 positions, a published schedule for this week, a draft for next week with an open shift, pending time-off requests, and an expired certification to trigger warnings. Re-running it resets the demo.
+`npm run db:seed` creates **Harbour & Vine — King Street**, a fictional Toronto restaurant. It has 17 staff across 7 positions and three weeks of schedules (last week and this week published, next week a draft), staffed by the rules engine itself. It also includes open shifts, pending time-off requests, shift swaps in progress, and an expired certification to trigger warnings. Dates are relative to today, and re-running it resets the demo.
 
 | Role | Email | Password |
 | --- | --- | --- |
 | Owner | `owner@harbourvine.test` | `crewline-demo` |
 | Manager | `manager@harbourvine.test` | `crewline-demo` |
 | Employee | `maya@harbourvine.test` | `crewline-demo` |
+| Employees (for swaps) | `sofia@`, `grace@`, `elena@`, `chloe@harbourvine.test` | `crewline-demo` |
 
 These accounts exist only in your local database.
 

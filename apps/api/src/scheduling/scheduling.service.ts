@@ -584,10 +584,62 @@ export class SchedulingService {
     return this.view(shift, location.timezone, (rate ?? 0) / 100, conflicts);
   }
 
+  /**
+   * Conflicts `employeeId` would have if they worked `shiftId`. Shifts in
+   * `excluding` are treated as already gone — e.g. the one they'd hand over
+   * in a trade.
+   */
+  async assignmentConflicts(
+    organizationId: string,
+    shiftId: string,
+    employeeId: string,
+    excluding: string[] = [],
+  ): Promise<Conflict[]> {
+    const shift = await this.prisma.shift.findFirst({
+      where: { id: shiftId, location: { organizationId } },
+      select: {
+        ...shiftSelect,
+        location: { select: { id: true, name: true, timezone: true, weekStartsOn: true } },
+      },
+    });
+    if (!shift) throw new NotFoundException('Shift not found');
+    const { location, ...row } = shift;
+    return this.conflictsFor(
+      organizationId,
+      location,
+      { ...row, employeeId },
+      [shiftId, ...excluding],
+    );
+  }
+
+  /** Shifts in the shape the staff portal shows them (local time, role, place). */
+  async describeShifts(organizationId: string, ids: string[]) {
+    const shifts = await this.prisma.shift.findMany({
+      where: { id: { in: ids }, location: { organizationId } },
+      select: {
+        ...shiftSelect,
+        position: { select: { name: true, color: true } },
+        location: { select: { name: true, timezone: true } },
+        employee: { select: { hourlyRateCents: true } },
+      },
+    });
+    return new Map(
+      shifts.map(({ position, location, employee, ...shift }) => [
+        shift.id,
+        {
+          ...this.view(shift, location.timezone, (employee?.hourlyRateCents ?? 0) / 100),
+          position,
+          location: { name: location.name },
+        },
+      ]),
+    );
+  }
+
   private async conflictsFor(
     organizationId: string,
     location: LocationRow,
     shift: ShiftLike,
+    excluding: string[] = [],
   ): Promise<Conflict[]> {
     if (!shift.employeeId) return [];
     const tz = location.timezone;
@@ -609,6 +661,7 @@ export class SchedulingService {
     });
     return findConflicts(shift, {
       ...ctx,
+      otherShifts: ctx.otherShifts.filter((s) => !s.id || !excluding.includes(s.id)),
       timeZone: tz,
       weekStart,
       positionName: position?.name,

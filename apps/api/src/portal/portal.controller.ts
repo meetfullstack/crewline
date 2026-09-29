@@ -9,6 +9,7 @@ import {
   Param,
   Post,
   Put,
+  Query,
 } from '@nestjs/common';
 import { ApiCookieAuth, ApiTags } from '@nestjs/swagger';
 import type { AuthUser } from '../auth/auth.types.js';
@@ -17,6 +18,8 @@ import { ReplaceAvailabilityDto } from '../employees/employees.dto.js';
 import { EmployeesService } from '../employees/employees.service.js';
 import { PrismaService } from '../prisma/prisma.service.js';
 import { SchedulingService } from '../scheduling/scheduling.service.js';
+import { CreateSwapDto, RespondSwapDto } from '../swaps/swaps.dto.js';
+import { SwapsService } from '../swaps/swaps.service.js';
 import { CreateTimeOffDto } from '../time-off/time-off.dto.js';
 import { TimeOffService } from '../time-off/time-off.service.js';
 
@@ -33,7 +36,41 @@ export class PortalController {
     private readonly scheduling: SchedulingService,
     private readonly employees: EmployeesService,
     private readonly timeOff: TimeOffService,
+    private readonly swaps: SwapsService,
   ) {}
+
+  // ─── Shift swaps ───────────────────────────────────────────────────────
+
+  @Get('swaps')
+  async mySwaps(@CurrentUser() user: AuthUser) {
+    return this.swaps.listMine(user.organizationId, await this.employeeId(user));
+  }
+
+  @Get('swaps/candidates')
+  async swapCandidates(@CurrentUser() user: AuthUser, @Query('shiftId') shiftId: string) {
+    return this.swaps.candidates(user.organizationId, await this.employeeId(user), shiftId);
+  }
+
+  @Post('swaps')
+  async requestSwap(@CurrentUser() user: AuthUser, @Body() dto: CreateSwapDto) {
+    return this.swaps.create(user.organizationId, await this.employeeId(user), dto);
+  }
+
+  @HttpCode(HttpStatus.OK)
+  @Post('swaps/:id/respond')
+  async respondToSwap(
+    @CurrentUser() user: AuthUser,
+    @Param('id') id: string,
+    @Body() dto: RespondSwapDto,
+  ) {
+    return this.swaps.respond(user.organizationId, await this.employeeId(user), id, dto.accept);
+  }
+
+  @HttpCode(HttpStatus.NO_CONTENT)
+  @Delete('swaps/:id')
+  async cancelSwap(@CurrentUser() user: AuthUser, @Param('id') id: string) {
+    await this.swaps.cancel(await this.employeeId(user), id);
+  }
 
   @Get('shifts')
   async shifts(@CurrentUser() user: AuthUser) {

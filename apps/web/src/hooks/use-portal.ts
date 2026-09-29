@@ -2,7 +2,7 @@
 
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { api } from "@/lib/api";
-import type { Shift } from "@/lib/schedule";
+import type { Conflict, Shift } from "@/lib/schedule";
 import type { AvailabilityBlock, RequestStatus, TimeOffRequest, TimeOffType } from "@/lib/types";
 
 export type MyShift = Shift & {
@@ -35,6 +35,90 @@ export function useClaimShift() {
     },
   });
 }
+
+// ─── Shift swaps ───────────────────────────────────────────────────────
+
+export type SwapStatus =
+  | "PENDING_COWORKER"
+  | "PENDING_MANAGER"
+  | "APPROVED"
+  | "DECLINED"
+  | "DENIED"
+  | "CANCELLED";
+
+type Person = { id: string; firstName: string; lastName: string };
+
+export interface Swap {
+  id: string;
+  kind: "COVER" | "TRADE";
+  status: SwapStatus;
+  message: string | null;
+  reviewNote: string | null;
+  createdAt: string;
+  requester: Person;
+  targetEmployee: Person;
+  shift: MyShift | null;
+  targetShift: MyShift | null;
+  reviewedBy: { firstName: string; lastName: string } | null;
+  /** Manager queue only: what approving would cause for each person. */
+  impact?: { target: Conflict[]; requester: Conflict[] };
+  canApprove?: boolean;
+}
+
+export interface SwapCandidate extends Person {
+  coverConflicts: Conflict[];
+  canCover: boolean;
+  tradeShifts: MyShift[];
+}
+
+export const useMySwaps = () =>
+  useQuery({ queryKey: ["me", "swaps"], queryFn: () => api<Swap[]>("/me/swaps") });
+
+export const useSwapCandidates = (shiftId: string | null) =>
+  useQuery({
+    queryKey: ["me", "swap-candidates", shiftId],
+    queryFn: () => api<SwapCandidate[]>(`/me/swaps/candidates?shiftId=${shiftId}`),
+    enabled: Boolean(shiftId),
+  });
+
+function useSwapWrite<T>(fn: (input: T) => Promise<unknown>) {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: fn,
+    onSettled: () => {
+      queryClient.invalidateQueries({ queryKey: ["me"] });
+      queryClient.invalidateQueries({ queryKey: ["swaps"] });
+      queryClient.invalidateQueries({ queryKey: ["schedule"] });
+      queryClient.invalidateQueries({ queryKey: ["dashboard"] });
+    },
+  });
+}
+
+export const useRequestSwap = () =>
+  useSwapWrite(
+    (input: { shiftId: string; targetEmployeeId: string; targetShiftId?: string; message?: string }) =>
+      api<Swap>("/me/swaps", { method: "POST", body: input }),
+  );
+
+export const useRespondSwap = () =>
+  useSwapWrite(({ id, accept }: { id: string; accept: boolean }) =>
+    api<Swap>(`/me/swaps/${id}/respond`, { method: "POST", body: { accept } }),
+  );
+
+export const useCancelSwap = () =>
+  useSwapWrite((id: string) => api(`/me/swaps/${id}`, { method: "DELETE" }));
+
+export const useSwapQueue = (status: SwapStatus | "ALL") =>
+  useQuery({
+    queryKey: ["swaps", status],
+    queryFn: () => api<Swap[]>(`/swaps?status=${status}`),
+  });
+
+export const useReviewSwap = () =>
+  useSwapWrite(
+    ({ id, ...input }: { id: string; status: "APPROVED" | "DENIED"; note?: string }) =>
+      api<Swap>(`/swaps/${id}`, { method: "PATCH", body: input }),
+  );
 
 // ─── Availability ──────────────────────────────────────────────────────
 

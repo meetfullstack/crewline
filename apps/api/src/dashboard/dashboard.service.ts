@@ -38,7 +38,7 @@ export class DashboardService {
       locationId: location.id,
       weekStart: today,
     });
-    const [lastWeek, nextWeek, pendingTimeOff, certifications] =
+    const [lastWeek, nextWeek, pendingTimeOff, certifications, swapsAwaitingApproval] =
       await Promise.all([
         this.scheduling.getWeek(organizationId, {
           locationId: location.id,
@@ -50,6 +50,9 @@ export class DashboardService {
         }),
         this.pendingTimeOff(organizationId),
         this.certificationAlerts(organizationId, today),
+        this.prisma.shiftSwap.count({
+          where: { requester: { organizationId }, status: 'PENDING_MANAGER' },
+        }),
       ]);
 
     return {
@@ -82,6 +85,7 @@ export class DashboardService {
           s.date <= addLocalDays(today, 6),
       ).length,
       pendingTimeOff,
+      swapsAwaitingApproval,
       certifications,
     };
   }

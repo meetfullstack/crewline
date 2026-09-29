@@ -59,6 +59,16 @@ enum TimeOffType {
   UNPAID
 }
 
+// A swap moves through the coworker first, then a manager.
+enum SwapStatus {
+  PENDING_COWORKER
+  PENDING_MANAGER
+  APPROVED
+  DECLINED // by the coworker
+  DENIED // by a manager
+  CANCELLED
+}
+
 // ─── Tenancy & accounts ──────────────────────────────────────────────────
 
 model Organization {
@@ -111,6 +121,7 @@ model User {
   employee        Employee?
   refreshTokens   RefreshToken[]
   reviewedTimeOff TimeOffRequest[] @relation("TimeOffReviewer")
+  reviewedSwaps   ShiftSwap[]      @relation("SwapReviewer")
 
   @@index([organizationId])
 }
@@ -177,6 +188,8 @@ model Employee {
   availability   Availability[]
   shifts         Shift[]
   timeOff        TimeOffRequest[]
+  swapsRequested ShiftSwap[]        @relation("SwapRequester")
+  swapsReceived  ShiftSwap[]        @relation("SwapTarget")
 
   @@index([organizationId, status])
 }
@@ -269,9 +282,40 @@ model Shift {
   position Position  @relation(fields: [positionId], references: [id], onDelete: Restrict)
   employee Employee? @relation(fields: [employeeId], references: [id], onDelete: SetNull)
 
+  swapsOffered ShiftSwap[] @relation("SwapShift")
+  swapsWanted  ShiftSwap[] @relation("SwapTargetShift")
+
   @@index([scheduleId])
   @@index([employeeId, startsAt])
   @@index([locationId, startsAt])
+}
+
+// "Cover": the coworker takes the requester's shift.
+// "Trade": they also hand the requester one of theirs (targetShiftId).
+model ShiftSwap {
+  id               String     @id @default(cuid())
+  requesterId      String
+  shiftId          String
+  targetEmployeeId String
+  targetShiftId    String?
+  message          String?
+  status           SwapStatus @default(PENDING_COWORKER)
+  respondedAt      DateTime?
+  reviewedById     String?
+  reviewedAt       DateTime?
+  reviewNote       String?
+  createdAt        DateTime   @default(now())
+
+  requester      Employee @relation("SwapRequester", fields: [requesterId], references: [id], onDelete: Cascade)
+  shift          Shift    @relation("SwapShift", fields: [shiftId], references: [id], onDelete: Cascade)
+  targetEmployee Employee @relation("SwapTarget", fields: [targetEmployeeId], references: [id], onDelete: Cascade)
+  targetShift    Shift?   @relation("SwapTargetShift", fields: [targetShiftId], references: [id], onDelete: Cascade)
+  reviewedBy     User?    @relation("SwapReviewer", fields: [reviewedById], references: [id], onDelete: SetNull)
+
+  @@index([status])
+  @@index([requesterId])
+  @@index([targetEmployeeId])
+  @@index([shiftId])
 }
 
 model TimeOffRequest {

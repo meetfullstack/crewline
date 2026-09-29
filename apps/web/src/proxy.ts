@@ -32,6 +32,7 @@ export const config = {
     "/schedule/:path*",
     "/employees/:path*",
     "/time-off/:path*",
+    "/swaps/:path*",
     "/settings/:path*",
     "/me/:path*",
   ],
