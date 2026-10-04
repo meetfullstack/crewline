@@ -5,7 +5,8 @@
   "description": "Workforce management and employee scheduling for restaurants and hospitality.",
   "workspaces": [
     "apps/*",
-    "packages/*"
+    "packages/*",
+    "e2e"
   ],
   "engines": {
     "node": ">=22"
@@ -20,7 +21,8 @@
     "db:up": "docker compose up -d",
     "db:down": "docker compose down",
     "db:migrate": "npm run db:migrate -w @crewline/api",
-    "db:seed": "npm run db:seed -w @crewline/api"
+    "db:seed": "npm run db:seed -w @crewline/api",
+    "test:e2e": "npm run test:e2e -w @crewline/e2e"
   },
   "allowScripts": {
     "@scarf/scarf": false,

@@ -32,3 +32,67 @@ jobs:
 
       - name: Build
         run: npm run build
+
+  # Real browser tests against production builds, Postgres and Redis.
+  e2e:
+    runs-on: ubuntu-latest
+    needs: check
+    services:
+      postgres:
+        image: postgres:17-alpine
+        env:
+          POSTGRES_USER: crewline
+          POSTGRES_PASSWORD: crewline
+          POSTGRES_DB: crewline
+        ports: ["5432:5432"]
+        options: >-
+          --health-cmd "pg_isready -U crewline"
+          --health-interval 5s --health-timeout 5s --health-retries 10
+      redis:
+        image: redis:7-alpine
+        ports: ["6379:6379"]
+        options: >-
+          --health-cmd "redis-cli ping"
+          --health-interval 5s --health-timeout 5s --health-retries 10
+    env:
+      PORT: 4000
+      DATABASE_URL: postgresql://crewline:crewline@localhost:5432/crewline
+      REDIS_URL: redis://localhost:6379
+      # Throwaway secrets for this ephemeral test environment only.
+      JWT_ACCESS_SECRET: ci-only-access-secret
+      JWT_REFRESH_SECRET: ci-only-refresh-secret
+      WEB_ORIGIN: http://localhost:3300
+      API_URL: http://localhost:4000
+      NEXT_PUBLIC_SOCKET_URL: http://localhost:4000
+    steps:
+      - uses: actions/checkout@v5
+
+      - uses: actions/setup-node@v5
+        with:
+          node-version: 24
+          cache: npm
+
+      - name: Install
+        run: npm ci
+
+      - name: Prepare database
+        run: |
+          npm exec -w @crewline/api -- prisma migrate deploy
+          npm run db:seed
+
+      - name: Build
+        run: npm run build
+
+      - name: Install Playwright browser
+        run: npx -w @crewline/e2e playwright install --with-deps chromium
+
+      - name: End-to-end tests
+        run: npm run test:e2e
+
+      - name: Upload Playwright report
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: playwright-report
+          path: e2e/playwright-report
+          retention-days: 7

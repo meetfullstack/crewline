@@ -15,3 +15,4 @@ test-results/
 CLAUDE.md
 AGENTS.md
 next-env.d.ts
+e2e/.auth/

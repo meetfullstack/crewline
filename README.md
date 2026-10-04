@@ -29,7 +29,7 @@ Managers build the week on a drag-and-drop schedule, see labour cost as they go,
 | API | NestJS 12, Prisma 7, PostgreSQL 17, Swagger / OpenAPI |
 | Auth | JWT access token + rotating refresh token in httpOnly cookies, argon2 password hashing, role guards |
 | Realtime & jobs | Socket.IO (short-lived socket tokens, per-org and per-user rooms), BullMQ + Redis |
-| Testing | Vitest, Playwright *(planned)* |
+| Testing | Vitest unit tests (rules engines, time zones, helpers), Playwright end-to-end tests in CI against Postgres + Redis |
 | Tooling | npm workspaces, Docker Compose, GitHub Actions |
 
 ## Architecture
@@ -117,6 +117,7 @@ These accounts exist only in your local database.
 | `npm run build` | Production build of both apps |
 | `npm run lint` | oxlint (API) and ESLint (web) |
 | `npm test` | Vitest unit tests in every workspace |
+| `npm run test:e2e` | Playwright end-to-end tests (needs the API, web app and seeded database) |
 | `npm run db:up` / `db:down` | Start or stop Postgres and Redis |
 | `npm run db:migrate` | Apply Prisma migrations in development |
 | `npm run db:seed` | Reset and load the demo restaurant |

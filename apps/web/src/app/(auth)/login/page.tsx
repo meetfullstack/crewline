@@ -16,7 +16,9 @@ export default function LoginPage() {
   return (
     <Card className="[--card-spacing:--spacing(6)]">
       <CardHeader>
-        <CardTitle className="text-xl">Welcome back</CardTitle>
+        <CardTitle className="text-xl">
+          <h1>Welcome back</h1>
+        </CardTitle>
         <CardDescription>Sign in to see your team&apos;s schedule.</CardDescription>
       </CardHeader>
       <CardContent className="grid gap-6">

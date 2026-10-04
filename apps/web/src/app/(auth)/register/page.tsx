@@ -15,7 +15,9 @@ export default function RegisterPage() {
   return (
     <Card className="[--card-spacing:--spacing(6)]">
       <CardHeader>
-        <CardTitle className="text-xl">Set up your restaurant</CardTitle>
+        <CardTitle className="text-xl">
+          <h1>Set up your restaurant</h1>
+        </CardTitle>
         <CardDescription>
           Create a workspace for your team. You can add staff and more
           locations after.
