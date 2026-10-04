@@ -16,7 +16,9 @@ import {
 } from '../common/time.js';
 import type { Prisma } from '../generated/prisma/client.js';
 import { EmploymentStatus, ScheduleStatus } from '../generated/prisma/enums.js';
+import { JobsService } from '../jobs/jobs.service.js';
 import { PrismaService } from '../prisma/prisma.service.js';
+import { RealtimeService } from '../realtime/realtime.service.js';
 import {
   type Conflict,
   type EmployeeContext,
@@ -53,7 +55,11 @@ type ShiftRow = Prisma.ShiftGetPayload<{ select: typeof shiftSelect }>;
 
 @Injectable()
 export class SchedulingService {
-  constructor(private readonly prisma: PrismaService) {}
+  constructor(
+    private readonly prisma: PrismaService,
+    private readonly jobs: JobsService,
+    private readonly realtime: RealtimeService,
+  ) {}
 
   // ─── Reading a week ────────────────────────────────────────────────────
 
@@ -354,6 +360,27 @@ export class SchedulingService {
       where: { id: week.schedule.id },
       data: { status: ScheduleStatus.PUBLISHED, publishedAt: now, updatedAt: now },
     });
+
+    // Staff screens refresh now; the per-person notifications fan out in the
+    // background so publishing stays instant for big teams.
+    this.realtime.toOrg(organizationId, 'schedule.changed', { locationId });
+    const first = week.days[0];
+    const last = week.days[6];
+    const fmt = (d: string) =>
+      new Date(`${d}T00:00:00Z`).toLocaleDateString('en-CA', {
+        timeZone: 'UTC',
+        month: 'short',
+        day: 'numeric',
+      });
+    await this.jobs
+      .schedulePublished({
+        organizationId,
+        scheduleId: week.schedule.id,
+        weekLabel: `${fmt(first)} – ${fmt(last)}`,
+        republished: week.schedule.status === ScheduleStatus.PUBLISHED,
+      })
+      .catch(() => undefined); // Notifications are best-effort; publishing isn't.
+
     return { publishedAt: now, shifts: week.shifts.length };
   }
 

@@ -157,6 +157,21 @@ export class AuthService {
     return user;
   }
 
+  /**
+   * A two-minute token for opening the realtime socket. Fetched through the
+   * same-origin API (cookie auth), then handed to the socket handshake, so it
+   * works even when the socket server is on another domain.
+   */
+  socketToken(user: { id: string; organizationId: string; role: Role }) {
+    return this.jwt.signAsync(
+      { sub: user.id, org: user.organizationId, role: user.role, typ: 'socket' },
+      {
+        secret: this.config.get('JWT_ACCESS_SECRET', { infer: true }),
+        expiresIn: 120,
+      },
+    );
+  }
+
   private revokeFamily(familyId: string) {
     return this.prisma.refreshToken.updateMany({
       where: { familyId, revokedAt: null },

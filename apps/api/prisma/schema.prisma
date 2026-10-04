@@ -124,6 +124,7 @@ model User {
   reviewedTimeOff TimeOffRequest[] @relation("TimeOffReviewer")
   reviewedSwaps   ShiftSwap[]      @relation("SwapReviewer")
   editedEntries   TimeEntry[]      @relation("TimeEntryEditor")
+  notifications   Notification[]
 
   @@index([organizationId])
 }
@@ -292,6 +293,25 @@ model Shift {
   @@index([scheduleId])
   @@index([employeeId, startsAt])
   @@index([locationId, startsAt])
+}
+
+// ─── Notifications ───────────────────────────────────────────────────────
+
+// In-app messages ("your schedule is published", "Sofia asked you to cover").
+// Delivered live over the socket and kept here for the bell.
+model Notification {
+  id        String    @id @default(cuid())
+  userId    String
+  kind      String
+  title     String
+  body      String?
+  href      String?
+  readAt    DateTime?
+  createdAt DateTime  @default(now())
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId, createdAt])
 }
 
 // ─── Time & attendance ───────────────────────────────────────────────────

@@ -17,6 +17,8 @@ Managers build the week on a drag-and-drop schedule, see labour cost as they go,
 | Manager dashboard (who's on now, labour vs budget and last week, needs-attention list) | ✅ Done |
 | Shift swaps (cover or trade, coworker accepts, manager approves with conflict checks) | ✅ Done |
 | Time & attendance (clock in/out, breaks, lateness and no-shows, timesheets with audited edits) | ✅ Done |
+| Live updates and in-app notifications (Socket.IO) | ✅ Done |
+| Background jobs: publish fan-out, shift reminders (BullMQ + Redis) | ✅ Done |
 | Labour analytics | Planned |
 
 ## Stack
@@ -26,7 +28,7 @@ Managers build the week on a drag-and-drop schedule, see labour cost as they go,
 | Web | Next.js 16 (App Router), React 19, TypeScript, Tailwind CSS 4, shadcn/ui, TanStack Query |
 | API | NestJS 12, Prisma 7, PostgreSQL 17, Swagger / OpenAPI |
 | Auth | JWT access token + rotating refresh token in httpOnly cookies, argon2 password hashing, role guards |
-| Realtime & jobs | Socket.IO, BullMQ + Redis *(planned)* |
+| Realtime & jobs | Socket.IO (short-lived socket tokens, per-org and per-user rooms), BullMQ + Redis |
 | Testing | Vitest, Playwright *(planned)* |
 | Tooling | npm workspaces, Docker Compose, GitHub Actions |
 
@@ -38,6 +40,12 @@ apps/
   api/   NestJS REST API (port 4000). Swagger UI at /api/docs.
 docker-compose.yml   Postgres + Redis for local development
 ```
+
+### Live updates and background jobs
+
+- **Socket.IO** pushes "this changed" events (schedule, attendance, time off, swaps) to the right rooms: the organization, its managers, or one user. The browser just refetches through the normal authorized API, so no data rides on the socket. Sockets authenticate with a two-minute token fetched through the same-origin API, which works even when the API is on another domain.
+- **Notifications** are stored for the bell and pushed live, e.g. "Sofia asked you to cover a shift" or "Your time off was approved".
+- **BullMQ on Redis** runs work outside the request: publishing a week queues a job that notifies everyone on it, and a repeatable job every 5 minutes reminds staff two hours before their shift, de-duplicated per shift.
 
 ### Scheduling rules engine
 

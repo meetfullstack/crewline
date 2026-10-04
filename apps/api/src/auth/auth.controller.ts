@@ -101,6 +101,12 @@ export class AuthController {
     return this.auth.me(user.id);
   }
 
+  @ApiCookieAuth(ACCESS_COOKIE)
+  @Get('socket-token')
+  async socketToken(@CurrentUser() user: AuthUser) {
+    return { token: await this.auth.socketToken(user) };
+  }
+
   private cookie(req: Request, name: string): string | undefined {
     return (req.cookies as Record<string, string> | undefined)?.[name];
   }

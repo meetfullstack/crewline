@@ -4,6 +4,7 @@ import type { AuthUser } from '../auth/auth.types.js';
 import { CurrentUser } from '../auth/decorators/current-user.decorator.js';
 import { Roles } from '../auth/decorators/roles.decorator.js';
 import { Role } from '../generated/prisma/enums.js';
+import { RealtimeService } from '../realtime/realtime.service.js';
 import { EditEntryDto, ManualEntryDto, TimesheetQuery } from './attendance.dto.js';
 import { AttendanceService } from './attendance.service.js';
 
@@ -13,7 +14,10 @@ import { AttendanceService } from './attendance.service.js';
 @Roles(Role.MANAGER)
 @Controller()
 export class AttendanceController {
-  constructor(private readonly attendance: AttendanceService) {}
+  constructor(
+    private readonly attendance: AttendanceService,
+    private readonly realtime: RealtimeService,
+  ) {}
 
   @Get('timesheets')
   timesheet(@CurrentUser() user: AuthUser, @Query() query: TimesheetQuery) {
@@ -21,12 +25,16 @@ export class AttendanceController {
   }
 
   @Post('time-entries')
-  create(@CurrentUser() user: AuthUser, @Body() dto: ManualEntryDto) {
-    return this.attendance.createEntry(user.organizationId, user.id, dto);
+  async create(@CurrentUser() user: AuthUser, @Body() dto: ManualEntryDto) {
+    const entry = await this.attendance.createEntry(user.organizationId, user.id, dto);
+    this.realtime.toManagers(user.organizationId, 'attendance.changed');
+    return entry;
   }
 
   @Patch('time-entries/:id')
-  edit(@CurrentUser() user: AuthUser, @Param('id') id: string, @Body() dto: EditEntryDto) {
-    return this.attendance.editEntry(user.organizationId, user.id, id, dto);
+  async edit(@CurrentUser() user: AuthUser, @Param('id') id: string, @Body() dto: EditEntryDto) {
+    const entry = await this.attendance.editEntry(user.organizationId, user.id, id, dto);
+    this.realtime.toManagers(user.organizationId, 'attendance.changed');
+    return entry;
   }
 }

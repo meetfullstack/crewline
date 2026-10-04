@@ -23,6 +23,7 @@ import {
   UpdateShiftDto,
   WeekQuery,
 } from './scheduling.dto.js';
+import { RealtimeService } from '../realtime/realtime.service.js';
 import { SchedulingService } from './scheduling.service.js';
 
 class CheckShiftDto extends ShiftInputDto {
@@ -37,7 +38,17 @@ class CheckShiftDto extends ShiftInputDto {
 @Roles(Role.MANAGER)
 @Controller()
 export class SchedulingController {
-  constructor(private readonly scheduling: SchedulingService) {}
+  constructor(
+    private readonly scheduling: SchedulingService,
+    private readonly realtime: RealtimeService,
+  ) {}
+
+  /** Other managers looking at the schedule refresh live. */
+  private async changed<T>(user: AuthUser, work: Promise<T>): Promise<T> {
+    const result = await work;
+    this.realtime.toManagers(user.organizationId, 'schedule.changed');
+    return result;
+  }
 
   @Get('schedules/week')
   week(@CurrentUser() user: AuthUser, @Query() query: WeekQuery) {
@@ -47,7 +58,7 @@ export class SchedulingController {
   @HttpCode(HttpStatus.OK)
   @Post('schedules/copy')
   copy(@CurrentUser() user: AuthUser, @Body() dto: CopyWeekDto) {
-    return this.scheduling.copyWeek(user.organizationId, dto);
+    return this.changed(user, this.scheduling.copyWeek(user.organizationId, dto));
   }
 
   @HttpCode(HttpStatus.OK)
@@ -58,7 +69,7 @@ export class SchedulingController {
 
   @Post('shifts')
   createShift(@CurrentUser() user: AuthUser, @Body() dto: ShiftInputDto) {
-    return this.scheduling.createShift(user.organizationId, dto);
+    return this.changed(user, this.scheduling.createShift(user.organizationId, dto));
   }
 
   @HttpCode(HttpStatus.OK)
@@ -73,12 +84,12 @@ export class SchedulingController {
     @Param('id') id: string,
     @Body() dto: UpdateShiftDto,
   ) {
-    return this.scheduling.updateShift(user.organizationId, id, dto);
+    return this.changed(user, this.scheduling.updateShift(user.organizationId, id, dto));
   }
 
   @HttpCode(HttpStatus.NO_CONTENT)
   @Delete('shifts/:id')
   deleteShift(@CurrentUser() user: AuthUser, @Param('id') id: string) {
-    return this.scheduling.deleteShift(user.organizationId, id);
+    return this.changed(user, this.scheduling.deleteShift(user.organizationId, id));
   }
 }

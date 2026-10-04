@@ -5,6 +5,7 @@ import { DocumentBuilder, SwaggerModule } from '@nestjs/swagger';
 import cookieParser from 'cookie-parser';
 import { AppModule } from './app.module.js';
 import type { Env } from './config/env.js';
+import { SocketAdapter } from './realtime/socket.adapter.js';
 
 async function bootstrap() {
   const app = await NestFactory.create(AppModule);
@@ -22,6 +23,9 @@ async function bootstrap() {
       forbidNonWhitelisted: true,
       transform: true,
     }),
+  );
+  app.useWebSocketAdapter(
+    new SocketAdapter(app, config.get('WEB_ORIGIN', { infer: true })),
   );
   app.enableShutdownHooks();
 

@@ -9,6 +9,8 @@ import {
   SheetTitle,
   SheetTrigger,
 } from "@/components/ui/sheet";
+import { NotificationBell } from "./notification-bell";
+import { RealtimeProvider } from "./realtime-provider";
 import { SidebarNav } from "./sidebar";
 import { ThemeToggle } from "./theme-toggle";
 import { UserMenu } from "./user-menu";
@@ -41,10 +43,12 @@ export function AppShell({ children }: { children: React.ReactNode }) {
             </SheetContent>
           </Sheet>
           <div className="ml-auto flex items-center gap-1">
+            <NotificationBell />
             <ThemeToggle />
             <UserMenu />
           </div>
         </header>
+        <RealtimeProvider />
         <main className="flex-1 px-4 py-6 sm:px-6 lg:px-8">{children}</main>
       </div>
     </div>
