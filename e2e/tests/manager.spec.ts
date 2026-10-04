@@ -40,6 +40,18 @@ test('shift editor checks conflicts live before saving', async ({ page }) => {
   await dialog.getByRole('button', { name: 'Cancel' }).click();
 });
 
+test('labour analytics show trends, attendance and the team', async ({ page }) => {
+  await page.goto('/analytics');
+  await expect(page.getByRole('heading', { name: 'Labour analytics' })).toBeVisible();
+  await expect(page.getByText('Average weekly wages')).toBeVisible();
+  await expect(page.getByRole('heading', { name: 'Wages by week' })).toBeVisible();
+  await expect(page.getByRole('heading', { name: 'Hours by position' })).toBeVisible();
+  // Switching the period reloads the numbers.
+  await page.getByRole('combobox', { name: 'Period' }).click();
+  await page.getByRole('option', { name: 'Last 4 weeks' }).click();
+  await expect(page.getByRole('combobox', { name: 'Period' })).toHaveText(/Last 4 weeks/);
+});
+
 test('timesheets list scheduled vs worked hours', async ({ page }) => {
   await page.goto('/timesheets');
   await expect(page.getByRole('heading', { name: 'Timesheets' })).toBeVisible();

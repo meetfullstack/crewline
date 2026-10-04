@@ -54,6 +54,11 @@ export function addLocalDays(date: LocalDate, days: number): LocalDate {
   return format(addDays(new Date(y, m - 1, d), days), 'yyyy-MM-dd');
 }
 
+/** Weekday of a local calendar day (0 = Sunday … 6 = Saturday). */
+export function dayOfWeekOf(date: LocalDate): number {
+  return new Date(`${date}T00:00:00Z`).getUTCDay();
+}
+
 /** A `@db.Date` column value for a local calendar day. */
 export function dateColumn(date: LocalDate): Date {
   return new Date(`${date}T00:00:00.000Z`);

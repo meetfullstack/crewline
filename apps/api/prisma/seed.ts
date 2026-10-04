@@ -162,9 +162,24 @@ const STAFF: Staff[] = [
 /** A slot to staff: weekday offset from Monday, position, start/end hour. */
 type Slot = [day: number, position: PositionKey, from: number, to: number];
 
-function weekTemplate(): Slot[] {
+/**
+ * The regular week, with some variety so analytics show a real trend:
+ * a slow week after the holidays, event weekends with extra cover, and a
+ * patio weekend with brunch.
+ */
+function weekTemplate(variant = -1): Slot[] {
   const slots: Slot[] = [];
+  const quiet = variant === 1;
+  const event = variant === 3 || variant === 6;
+  const patio = variant === 5 || variant === 7;
   for (let day = 0; day < 7; day++) {
+    if (quiet && day <= 1) continue; // closed Monday and Tuesday that week
+    if (event && day >= 4) {
+      slots.push([day, 'server', 18, 23], [day, 'bartender', 18, 24], [day, 'lineCook', 18, 24]);
+    }
+    if (patio && day >= 5) {
+      slots.push([day, 'server', 10, 15], [day, 'lineCook', 9, 15], [day, 'host', 10, 15]);
+    }
     const busy = day >= 3; // Thursday to Sunday
     slots.push(
       [day, 'manager', 15, 23.5],
@@ -347,15 +362,23 @@ async function main() {
     return shift; // nobody free: leave it open
   };
 
+  // Eight weeks of history give the dashboard a comparison and analytics a
+  // trend; this week is published and next week is still a draft.
+  const HISTORY_WEEKS = 8;
   const weeks = [
-    // Last week gives the dashboard something to compare against.
-    { start: addLocalDays(thisWeek, -7), status: ScheduleStatus.PUBLISHED },
+    ...Array.from({ length: HISTORY_WEEKS }, (_, i) => ({
+      start: addLocalDays(thisWeek, -7 * (HISTORY_WEEKS - i)),
+      status: ScheduleStatus.PUBLISHED,
+    })),
     { start: thisWeek, status: ScheduleStatus.PUBLISHED },
     { start: nextWeek, status: ScheduleStatus.DRAFT },
   ];
   let total = 0;
   for (const week of weeks) {
-    let shifts = weekTemplate().map((slot) => staff(week.start, toShift(week.start, slot)));
+    const variant = weeks.indexOf(week);
+    let shifts = weekTemplate(week.start < thisWeek ? variant : -1).map((slot) =>
+      staff(week.start, toShift(week.start, slot)),
+    );
 
     if (week.start === thisWeek) {
       // Extra weekend cover posted for staff to pick up in the portal.
@@ -485,6 +508,8 @@ async function main() {
 
     // Deterministic jitter: mostly a few minutes either side of the start.
     let inOffset = ((i * 37) % 11) - 6;
+    // Now and then someone runs late (about 1 shift in 20).
+    if ((i * 13) % 19 === 0) inOffset = 7 + (i % 15);
     if (name === 'Marcus' && marcusLate < 2 && i % 2 === 1) {
       inOffset = 18 + marcusLate * 7;
       marcusLate++;

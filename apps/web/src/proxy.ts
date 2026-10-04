@@ -34,6 +34,7 @@ export const config = {
     "/time-off/:path*",
     "/swaps/:path*",
     "/timesheets/:path*",
+    "/analytics/:path*",
     "/settings/:path*",
     "/me/:path*",
   ],

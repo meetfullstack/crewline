@@ -1,4 +1,5 @@
 import {
+  ChartColumn,
   CalendarDays,
   CalendarPlus,
   CalendarRange,
@@ -24,6 +25,7 @@ const MANAGER_NAV: NavItem[] = [
   { href: "/schedule", label: "Schedule", icon: CalendarRange },
   { href: "/employees", label: "Employees", icon: Users },
   { href: "/timesheets", label: "Timesheets", icon: Timer },
+  { href: "/analytics", label: "Analytics", icon: ChartColumn },
   { href: "/time-off", label: "Time off", icon: Plane },
   { href: "/swaps", label: "Swaps", icon: Repeat },
   { href: "/settings", label: "Settings", icon: Settings },

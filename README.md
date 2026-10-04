@@ -19,7 +19,7 @@ Managers build the week on a drag-and-drop schedule, see labour cost as they go,
 | Time & attendance (clock in/out, breaks, lateness and no-shows, timesheets with audited edits) | ✅ Done |
 | Live updates and in-app notifications (Socket.IO) | ✅ Done |
 | Background jobs: publish fan-out, shift reminders (BullMQ + Redis) | ✅ Done |
-| Labour analytics | Planned |
+| Labour analytics (weekly wages vs budget, cost by weekday and position, lateness, no-shows, overtime) | ✅ Done |
 
 ## Stack
 
@@ -98,7 +98,7 @@ Open http://localhost:3300 for the app and http://localhost:4000/api/docs for th
 
 ### Demo data
 
-`npm run db:seed` creates **Harbour & Vine — King Street**, a fictional Toronto restaurant. It has 17 staff across 7 positions and three weeks of schedules (last week and this week published, next week a draft), staffed by the rules engine itself. It also includes open shifts, pending time-off requests, shift swaps in progress, and an expired certification to trigger warnings. Dates are relative to today, and re-running it resets the demo.
+`npm run db:seed` creates **Harbour & Vine — King Street**, a fictional Toronto restaurant. It has 17 staff across 7 positions and ten weeks of schedules (eight weeks of history with quiet and event weeks, this week published, next week a draft), staffed by the rules engine itself, with matching clock-in history. It also includes open shifts, pending time-off requests, shift swaps in progress, and an expired certification to trigger warnings. Dates are relative to today, and re-running it resets the demo.
 
 | Role | Email | Password |
 | --- | --- | --- |

@@ -2,6 +2,7 @@ import { Module } from '@nestjs/common';
 import { ConfigModule } from '@nestjs/config';
 import { APP_GUARD } from '@nestjs/core';
 import { ThrottlerGuard, ThrottlerModule } from '@nestjs/throttler';
+import { AnalyticsModule } from './analytics/analytics.module.js';
 import { AttendanceModule } from './attendance/attendance.module.js';
 import { AuthModule } from './auth/auth.module.js';
 import { JwtAuthGuard } from './auth/guards/jwt-auth.guard.js';
@@ -38,6 +39,7 @@ import { TimeOffModule } from './time-off/time-off.module.js';
     AttendanceModule,
     PortalModule,
     DashboardModule,
+    AnalyticsModule,
   ],
   controllers: [HealthController, OrganizationController],
   providers: [
