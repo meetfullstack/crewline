@@ -1,6 +1,6 @@
 # Deploying Crewline
 
-Three free services host the live demo:
+Three free services host the live demo at **https://crewline-beryl.vercel.app** (API: https://crewline-api-v4av.onrender.com):
 
 ```
 Visitor → Vercel (Next.js web) ──/api/* rewrite──▶ Render (NestJS API) ──▶ Neon (Postgres)

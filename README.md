@@ -4,7 +4,9 @@ Workforce management and employee scheduling for restaurants and hospitality tea
 
 Managers build the week on a drag-and-drop schedule, see labour cost as they go, and publish when it's right. Staff get a portal to see their shifts, set availability, request time off and pick up open shifts.
 
-> Portfolio project, in active development.
+**Live demo:** https://crewline-beryl.vercel.app (sign in with any demo account below) · **API docs:** https://crewline-api-v4av.onrender.com/api/docs
+
+> Portfolio project. The API runs on Render's free tier, so the first request after a quiet spell can take up to a minute while it wakes up.
 
 ## Features
 
@@ -107,7 +109,7 @@ Open http://localhost:3300 for the app and http://localhost:4000/api/docs for th
 | Employee | `maya@harbourvine.test` | `crewline-demo` |
 | Employees (for swaps) | `sofia@`, `grace@`, `elena@`, `chloe@harbourvine.test` | `crewline-demo` |
 
-These accounts exist only in your local database.
+The same accounts work on the live demo.
 
 ## Scripts
 

@@ -22,7 +22,7 @@ services:
       - key: REDIS_URL
         sync: false # optional — leave empty to run jobs in-process
       - key: WEB_ORIGIN
-        sync: false # the Vercel URL, e.g. https://crewline.vercel.app
+        sync: false # the Vercel URL, e.g. https://crewline-beryl.vercel.app
       - key: JWT_ACCESS_SECRET
         generateValue: true
       - key: JWT_REFRESH_SECRET
