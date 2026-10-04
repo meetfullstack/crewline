@@ -34,7 +34,7 @@ import {
   ScheduleStatus,
   TimeOffType,
 } from '../src/generated/prisma/enums.js';
-import { PrismaClient } from '../src/generated/prisma/client.js';
+import { type Prisma, PrismaClient } from '../src/generated/prisma/client.js';
 import {
   type EmployeeContext,
   findConflicts,
@@ -497,6 +497,7 @@ async function main() {
   const notInYet = running.find((s) => s.startsAt.getTime() < now - 10 * MIN);
   let marcusLate = 0;
   let entries = 0;
+  const pending: Prisma.TimeEntryUncheckedCreateInput[] = [];
 
   for (const [i, s] of worked.entries()) {
     const name = s.employee!.firstName;
@@ -527,17 +528,23 @@ async function main() {
       if (mid + length < now) breaks.push({ startAt: new Date(mid), endAt: new Date(mid + length) });
     }
 
-    await prisma.timeEntry.create({
-      data: {
-        employeeId: s.employeeId!,
-        locationId: location.id,
-        shiftId: s.id,
-        clockInAt,
-        clockOutAt,
-        breaks: { create: breaks },
-      },
+    pending.push({
+      employeeId: s.employeeId!,
+      locationId: location.id,
+      shiftId: s.id,
+      clockInAt,
+      clockOutAt,
+      breaks: { create: breaks },
     });
-    entries++;
+  }
+
+  // Written in parallel batches: one-at-a-time inserts are slow against a
+  // remote database (each is a network round trip).
+  for (let i = 0; i < pending.length; i += 25) {
+    await Promise.all(
+      pending.slice(i, i + 25).map((data) => prisma.timeEntry.create({ data })),
+    );
+    entries += Math.min(25, pending.length - i);
   }
 
   console.log(
