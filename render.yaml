@@ -1,0 +1,29 @@
+# Render Blueprint for the Crewline API (https://render.com/docs/blueprint-spec).
+# The web app deploys separately on Vercel — see DEPLOY.md.
+services:
+  - type: web
+    name: crewline-api
+    runtime: node
+    plan: free
+    region: ohio
+    # Dev dependencies (Nest CLI, Prisma) are needed to build even though
+    # NODE_ENV is production at runtime.
+    buildCommand: npm ci --include=dev && npm run build -w @crewline/api
+    # Apply pending migrations, then start.
+    startCommand: npm run migrate:deploy -w @crewline/api && npm run start:prod -w @crewline/api
+    healthCheckPath: /api/health
+    envVars:
+      - key: NODE_VERSION
+        value: "24"
+      - key: NODE_ENV
+        value: production
+      - key: DATABASE_URL
+        sync: false # Neon connection string
+      - key: REDIS_URL
+        sync: false # optional — leave empty to run jobs in-process
+      - key: WEB_ORIGIN
+        sync: false # the Vercel URL, e.g. https://crewline.vercel.app
+      - key: JWT_ACCESS_SECRET
+        generateValue: true
+      - key: JWT_REFRESH_SECRET
+        generateValue: true

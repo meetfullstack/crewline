@@ -1,0 +1,33 @@
+name: Reset live demo
+
+# Re-seeds the public demo every night so visitors always find fresh,
+# current-week data. Off until the repository variable DEMO_RESET is set to
+# "true" and the DEMO_DATABASE_URL secret holds the production database URL.
+on:
+  schedule:
+    - cron: "0 9 * * *" # 09:00 UTC ≈ 5am in Toronto
+  workflow_dispatch:
+
+jobs:
+  reset:
+    if: vars.DEMO_RESET == 'true'
+    runs-on: ubuntu-latest
+    env:
+      DATABASE_URL: ${{ secrets.DEMO_DATABASE_URL }}
+    steps:
+      - uses: actions/checkout@v5
+
+      - uses: actions/setup-node@v5
+        with:
+          node-version: 24
+          cache: npm
+
+      - name: Install
+        run: npm ci
+
+      - name: Migrate and re-seed the demo organization
+        # The seed only replaces the "harbour-vine" demo organization;
+        # anything else in the database is left alone.
+        run: |
+          npm run migrate:deploy -w @crewline/api
+          npm run db:seed

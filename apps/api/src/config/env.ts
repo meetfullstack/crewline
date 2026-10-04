@@ -3,7 +3,8 @@
 export interface Env {
   PORT: number;
   DATABASE_URL: string;
-  REDIS_URL: string;
+  /** Optional: without it, background jobs run in-process (see JobsModule). */
+  REDIS_URL?: string;
   JWT_ACCESS_SECRET: string;
   JWT_REFRESH_SECRET: string;
   WEB_ORIGIN: string;
@@ -25,7 +26,7 @@ export function validateEnv(raw: Record<string, unknown>): Env {
   return {
     PORT: Number(raw.PORT ?? 4000),
     DATABASE_URL: String(raw.DATABASE_URL),
-    REDIS_URL: String(raw.REDIS_URL ?? 'redis://localhost:6379'),
+    REDIS_URL: raw.REDIS_URL ? String(raw.REDIS_URL) : undefined,
     JWT_ACCESS_SECRET: String(raw.JWT_ACCESS_SECRET),
     JWT_REFRESH_SECRET: String(raw.JWT_REFRESH_SECRET),
     WEB_ORIGIN: String(raw.WEB_ORIGIN ?? 'http://localhost:3300'),

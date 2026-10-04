@@ -73,7 +73,7 @@ Security notes:
 
 ## Getting started
 
-Prerequisites: Node.js 22+, npm 11+, Docker Desktop.
+Prerequisites: Node.js 22+, npm 11+, Docker Desktop. To put it online, see [DEPLOY.md](DEPLOY.md) (Vercel + Render + Neon, all free tiers).
 
 ```bash
 # 1. Install dependencies

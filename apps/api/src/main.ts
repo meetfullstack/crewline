@@ -1,6 +1,7 @@
 import { ValidationPipe } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { NestFactory } from '@nestjs/core';
+import type { NestExpressApplication } from '@nestjs/platform-express';
 import { DocumentBuilder, SwaggerModule } from '@nestjs/swagger';
 import cookieParser from 'cookie-parser';
 import { AppModule } from './app.module.js';
@@ -8,8 +9,15 @@ import type { Env } from './config/env.js';
 import { SocketAdapter } from './realtime/socket.adapter.js';
 
 async function bootstrap() {
-  const app = await NestFactory.create(AppModule);
+  const app = await NestFactory.create<NestExpressApplication>(AppModule);
   const config = app.get<ConfigService<Env, true>>(ConfigService);
+
+  // In production requests arrive through Vercel's /api rewrite and the
+  // host's load balancer. Trusting X-Forwarded-For gives each visitor their
+  // own rate-limit bucket instead of one shared by everyone.
+  if (config.get('NODE_ENV', { infer: true }) === 'production') {
+    app.set('trust proxy', true);
+  }
 
   app.setGlobalPrefix('api');
   app.use(cookieParser());

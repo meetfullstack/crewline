@@ -28,7 +28,7 @@ import { TimeOffModule } from './time-off/time-off.module.js';
     ThrottlerModule.forRoot([{ ttl: 60_000, limit: 300 }]),
     PrismaModule,
     RealtimeModule,
-    JobsModule,
+    JobsModule.register(),
     AuthModule,
     EmployeesModule,
     LocationsModule,

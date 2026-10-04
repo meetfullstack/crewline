@@ -7,13 +7,21 @@ import {
   REMINDER_TICK_MINUTES,
   type SchedulePublishedJob,
 } from './jobs.constants.js';
+import { NotificationJobs } from './notification-jobs.js';
 
-/** The rest of the app enqueues background work through here. */
+/** What the rest of the app calls to run background work. */
+export abstract class JobsService {
+  abstract schedulePublished(data: SchedulePublishedJob): Promise<unknown>;
+}
+
+/** Redis available: queue the work for the BullMQ worker. */
 @Injectable()
-export class JobsService implements OnModuleInit {
-  private readonly logger = new Logger(JobsService.name);
+export class QueuedJobsService extends JobsService implements OnModuleInit {
+  private readonly logger = new Logger(QueuedJobsService.name);
 
-  constructor(@InjectQueue(NOTIFICATIONS_QUEUE) private readonly queue: Queue) {}
+  constructor(@InjectQueue(NOTIFICATIONS_QUEUE) private readonly queue: Queue) {
+    super();
+  }
 
   async onModuleInit() {
     try {
@@ -34,6 +42,30 @@ export class JobsService implements OnModuleInit {
       backoff: { type: 'exponential', delay: 2_000 },
       removeOnComplete: 100,
       removeOnFail: 500,
+    });
+  }
+}
+
+/**
+ * No Redis (e.g. a free-tier deployment): run the same work in-process.
+ * Notifications still go out; only the timed shift reminders are skipped.
+ */
+@Injectable()
+export class InlineJobsService extends JobsService implements OnModuleInit {
+  private readonly logger = new Logger(InlineJobsService.name);
+
+  constructor(private readonly jobs: NotificationJobs) {
+    super();
+  }
+
+  onModuleInit() {
+    this.logger.log('REDIS_URL not set: background jobs run inline, shift reminders are off');
+  }
+
+  schedulePublished(data: SchedulePublishedJob) {
+    // Not awaited by callers' critical path; errors are logged, not thrown.
+    return this.jobs.schedulePublished(data).catch((error: Error) => {
+      this.logger.error(`Publish notifications failed: ${error.message}`);
     });
   }
 }

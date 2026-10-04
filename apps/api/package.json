@@ -26,7 +26,8 @@
     "postinstall": "prisma generate",
     "typecheck": "tsc --noEmit",
     "db:seed": "prisma db seed",
-    "postdb:migrate": "prisma generate"
+    "postdb:migrate": "prisma generate",
+    "migrate:deploy": "prisma migrate deploy"
   },
   "dependencies": {
     "@date-fns/tz": "^1.5.0",
