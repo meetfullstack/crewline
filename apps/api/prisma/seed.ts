@@ -447,6 +447,78 @@ async function main() {
     });
   }
 
+  // ─── Time & attendance history ───────────────────────────────────────
+  // Every published shift that has started gets clock data, mostly on
+  // time, with a few realistic problems for the timesheet to flag.
+  const now = Date.now();
+  const MIN = 60_000;
+  const worked = await prisma.shift.findMany({
+    where: {
+      locationId: location.id,
+      employeeId: { not: null },
+      schedule: { status: ScheduleStatus.PUBLISHED },
+      startsAt: { lt: new Date(now) },
+    },
+    orderBy: { startsAt: 'asc' },
+    select: {
+      id: true,
+      employeeId: true,
+      startsAt: true,
+      endsAt: true,
+      breakMinutes: true,
+      employee: { select: { firstName: true } },
+    },
+  });
+  const running = worked.filter((s) => s.endsAt.getTime() > now);
+  // Someone scheduled right now who hasn't turned up yet.
+  const notInYet = running.find((s) => s.startsAt.getTime() < now - 10 * MIN);
+  let marcusLate = 0;
+  let entries = 0;
+
+  for (const [i, s] of worked.entries()) {
+    const name = s.employee!.firstName;
+    const start = s.startsAt.getTime();
+    const end = s.endsAt.getTime();
+    const isRunning = end > now;
+    if (s.id === notInYet?.id) continue;
+    if (name === 'Tomás' && i % 4 === 0 && !isRunning) continue; // a no-show
+
+    // Deterministic jitter: mostly a few minutes either side of the start.
+    let inOffset = ((i * 37) % 11) - 6;
+    if (name === 'Marcus' && marcusLate < 2 && i % 2 === 1) {
+      inOffset = 18 + marcusLate * 7;
+      marcusLate++;
+    }
+    const outOffset =
+      name === 'Grace' && i % 3 === 0 ? -45 : ((i * 17) % 9) - 2; // Grace left early once
+    const clockInAt = new Date(Math.min(start + inOffset * MIN, now - MIN));
+    const forgotOut = name === 'Omar' && !isRunning && end > now - 36 * 60 * MIN;
+    const clockOutAt = isRunning || forgotOut ? null : new Date(end + outOffset * MIN);
+
+    const breaks = [];
+    if (s.breakMinutes) {
+      const mid = (start + end) / 2;
+      const length = (s.breakMinutes + ((i % 3) - 1) * 5) * MIN;
+      if (mid + length < now) breaks.push({ startAt: new Date(mid), endAt: new Date(mid + length) });
+    }
+
+    await prisma.timeEntry.create({
+      data: {
+        employeeId: s.employeeId!,
+        locationId: location.id,
+        shiftId: s.id,
+        clockInAt,
+        clockOutAt,
+        breaks: { create: breaks },
+      },
+    });
+    entries++;
+  }
+
+  console.log(
+    `Time entries: ${entries} (${running.length} shifts running now${notInYet ? `, ${notInYet.employee!.firstName} not in yet` : ''}).`,
+  );
+
   console.log(
     `Seeded "${org.name}": ${STAFF.length} staff, ${Object.keys(POSITIONS).length} positions, ${total} shifts (weeks of ${thisWeek} and ${nextWeek}).`,
   );

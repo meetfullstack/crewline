@@ -101,6 +101,7 @@ model Location {
   employees    EmployeeLocation[]
   schedules    Schedule[]
   shifts       Shift[]
+  timeEntries  TimeEntry[]
 
   @@index([organizationId])
 }
@@ -122,6 +123,7 @@ model User {
   refreshTokens   RefreshToken[]
   reviewedTimeOff TimeOffRequest[] @relation("TimeOffReviewer")
   reviewedSwaps   ShiftSwap[]      @relation("SwapReviewer")
+  editedEntries   TimeEntry[]      @relation("TimeEntryEditor")
 
   @@index([organizationId])
 }
@@ -190,6 +192,7 @@ model Employee {
   timeOff        TimeOffRequest[]
   swapsRequested ShiftSwap[]        @relation("SwapRequester")
   swapsReceived  ShiftSwap[]        @relation("SwapTarget")
+  timeEntries    TimeEntry[]
 
   @@index([organizationId, status])
 }
@@ -284,10 +287,51 @@ model Shift {
 
   swapsOffered ShiftSwap[] @relation("SwapShift")
   swapsWanted  ShiftSwap[] @relation("SwapTargetShift")
+  timeEntries  TimeEntry[]
 
   @@index([scheduleId])
   @@index([employeeId, startsAt])
   @@index([locationId, startsAt])
+}
+
+// ─── Time & attendance ───────────────────────────────────────────────────
+
+// One stretch of work from clock-in to clock-out. Linked to the shift it
+// was worked against, if any (unscheduled work has no shift).
+// Manager corrections are audited: who, when and why.
+model TimeEntry {
+  id         String    @id @default(cuid())
+  employeeId String
+  locationId String
+  shiftId    String?
+  clockInAt  DateTime
+  clockOutAt DateTime?
+  editedById String?
+  editedAt   DateTime?
+  editReason String?
+  createdAt  DateTime  @default(now())
+  updatedAt  DateTime  @updatedAt
+
+  employee Employee    @relation(fields: [employeeId], references: [id], onDelete: Cascade)
+  location Location    @relation(fields: [locationId], references: [id], onDelete: Cascade)
+  shift    Shift?      @relation(fields: [shiftId], references: [id], onDelete: SetNull)
+  editedBy User?       @relation("TimeEntryEditor", fields: [editedById], references: [id], onDelete: SetNull)
+  breaks   TimeBreak[]
+
+  @@index([employeeId, clockInAt])
+  @@index([locationId, clockInAt])
+  @@index([shiftId])
+}
+
+model TimeBreak {
+  id          String    @id @default(cuid())
+  timeEntryId String
+  startAt     DateTime
+  endAt       DateTime?
+
+  timeEntry TimeEntry @relation(fields: [timeEntryId], references: [id], onDelete: Cascade)
+
+  @@index([timeEntryId])
 }
 
 // "Cover": the coworker takes the requester's shift.

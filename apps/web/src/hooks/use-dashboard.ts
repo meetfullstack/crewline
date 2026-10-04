@@ -37,9 +37,15 @@ export interface Dashboard {
       position: { id: string; name: string; color: string } | null;
       employee: { id: string; firstName: string; lastName: string } | null;
       conflicts: Conflict[];
+      attendance: {
+        status: "UPCOMING" | "NOT_IN" | "WORKING" | "COMPLETED" | "MISSING_CLOCK_OUT" | "NO_SHOW";
+        lateMinutes: number;
+      } | null;
     }[];
     scheduled: number;
     onNow: number;
+    notIn: number;
+    late: number;
     open: number;
     hours: number;
     cost: number;

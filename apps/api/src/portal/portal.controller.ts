@@ -12,6 +12,7 @@ import {
   Query,
 } from '@nestjs/common';
 import { ApiCookieAuth, ApiTags } from '@nestjs/swagger';
+import { AttendanceService } from '../attendance/attendance.service.js';
 import type { AuthUser } from '../auth/auth.types.js';
 import { CurrentUser } from '../auth/decorators/current-user.decorator.js';
 import { ReplaceAvailabilityDto } from '../employees/employees.dto.js';
@@ -37,7 +38,39 @@ export class PortalController {
     private readonly employees: EmployeesService,
     private readonly timeOff: TimeOffService,
     private readonly swaps: SwapsService,
+    private readonly attendance: AttendanceService,
   ) {}
+
+  // ─── Time clock ────────────────────────────────────────────────────────
+
+  @Get('clock')
+  async clock(@CurrentUser() user: AuthUser) {
+    return this.attendance.clockState(user.organizationId, await this.employeeId(user));
+  }
+
+  @HttpCode(HttpStatus.OK)
+  @Post('clock/in')
+  async clockIn(@CurrentUser() user: AuthUser) {
+    return this.attendance.clockIn(user.organizationId, await this.employeeId(user));
+  }
+
+  @HttpCode(HttpStatus.OK)
+  @Post('clock/break/start')
+  async startBreak(@CurrentUser() user: AuthUser) {
+    return this.attendance.startBreak(user.organizationId, await this.employeeId(user));
+  }
+
+  @HttpCode(HttpStatus.OK)
+  @Post('clock/break/end')
+  async endBreak(@CurrentUser() user: AuthUser) {
+    return this.attendance.endBreak(user.organizationId, await this.employeeId(user));
+  }
+
+  @HttpCode(HttpStatus.OK)
+  @Post('clock/out')
+  async clockOut(@CurrentUser() user: AuthUser) {
+    return this.attendance.clockOut(user.organizationId, await this.employeeId(user));
+  }
 
   // ─── Shift swaps ───────────────────────────────────────────────────────
 

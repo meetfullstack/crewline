@@ -1,4 +1,5 @@
 import { Injectable, NotFoundException } from '@nestjs/common';
+import { attendanceFor, type EntryLike } from '../attendance/attendance.rules.js';
 import { addLocalDays, dateColumn, localDateOf } from '../common/time.js';
 import { EmploymentStatus, RequestStatus } from '../generated/prisma/enums.js';
 import { PrismaService } from '../prisma/prisma.service.js';
@@ -55,11 +56,24 @@ export class DashboardService {
         }),
       ]);
 
+    const todaysShiftIds = thisWeek.shifts
+      .filter((s) => s.date === today && s.employeeId)
+      .map((s) => s.id);
+    const todaysEntries = await this.prisma.timeEntry.findMany({
+      where: { shiftId: { in: todaysShiftIds } },
+      select: {
+        shiftId: true,
+        clockInAt: true,
+        clockOutAt: true,
+        breaks: { select: { startAt: true, endAt: true } },
+      },
+    });
+
     return {
       location: { id: location.id, name: location.name, timezone: location.timezone },
       date: today,
       generatedAt: now,
-      staffing: this.todayStaffing(thisWeek, today, now),
+      staffing: this.todayStaffing(thisWeek, today, now, todaysEntries),
       labor: {
         weeklyBudget:
           location.weeklyLaborBudgetCents === null
@@ -90,7 +104,12 @@ export class DashboardService {
     };
   }
 
-  private todayStaffing(week: Week, today: string, now: Date) {
+  private todayStaffing(
+    week: Week,
+    today: string,
+    now: Date,
+    entries: (EntryLike & { shiftId: string | null })[],
+  ) {
     const names = new Map(week.employees.map((e) => [e.id, e]));
     const positions = new Map(week.positions.map((p) => [p.id, p]));
     const shifts = week.shifts
@@ -99,7 +118,15 @@ export class DashboardService {
         const employee = s.employeeId ? names.get(s.employeeId) : undefined;
         const state =
           now < s.startsAt ? 'upcoming' : now < s.endsAt ? 'on' : 'done';
+        // What actually happened on the clock, for assigned shifts.
+        const attendance = employee
+          ? attendanceFor(s, entries.filter((e) => e.shiftId === s.id), now)
+          : null;
         return {
+          attendance: attendance && {
+            status: attendance.status,
+            lateMinutes: attendance.lateMinutes,
+          },
           id: s.id,
           startMinute: s.startMinute,
           endMinute: s.endMinute,
@@ -121,7 +148,10 @@ export class DashboardService {
     return {
       shifts,
       scheduled: shifts.filter((s) => s.employee).length,
-      onNow: shifts.filter((s) => s.employee && s.state === 'on').length,
+      // "On shift" means actually clocked in, not merely scheduled.
+      onNow: shifts.filter((s) => s.attendance?.status === 'WORKING').length,
+      notIn: shifts.filter((s) => s.attendance?.status === 'NOT_IN').length,
+      late: shifts.filter((s) => (s.attendance?.lateMinutes ?? 0) > 0).length,
       open: shifts.filter((s) => !s.employee).length,
       hours: day?.hours ?? 0,
       cost: day?.cost ?? 0,

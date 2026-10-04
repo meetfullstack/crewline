@@ -16,7 +16,7 @@ Managers build the week on a drag-and-drop schedule, see labour cost as they go,
 | Employee portal (my week, availability, time-off requests, open-shift pickup) | ✅ Done |
 | Manager dashboard (who's on now, labour vs budget and last week, needs-attention list) | ✅ Done |
 | Shift swaps (cover or trade, coworker accepts, manager approves with conflict checks) | ✅ Done |
-| Time & attendance (clock in/out, breaks, overtime) | Planned |
+| Time & attendance (clock in/out, breaks, lateness and no-shows, timesheets with audited edits) | ✅ Done |
 | Labour analytics | Planned |
 
 ## Stack

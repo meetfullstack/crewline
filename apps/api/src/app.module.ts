@@ -2,6 +2,7 @@ import { Module } from '@nestjs/common';
 import { ConfigModule } from '@nestjs/config';
 import { APP_GUARD } from '@nestjs/core';
 import { ThrottlerGuard, ThrottlerModule } from '@nestjs/throttler';
+import { AttendanceModule } from './attendance/attendance.module.js';
 import { AuthModule } from './auth/auth.module.js';
 import { JwtAuthGuard } from './auth/guards/jwt-auth.guard.js';
 import { RolesGuard } from './auth/guards/roles.guard.js';
@@ -30,6 +31,7 @@ import { TimeOffModule } from './time-off/time-off.module.js';
     SchedulingModule,
     TimeOffModule,
     SwapsModule,
+    AttendanceModule,
     PortalModule,
     DashboardModule,
   ],

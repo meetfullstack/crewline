@@ -9,6 +9,7 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { useMyOpenShifts, useMyShifts, useMyTimeOff } from "@/hooks/use-portal";
 import { formatMoney } from "@/lib/format";
 import { formatDay, shiftRange } from "@/lib/schedule";
+import { ClockCard } from "./clock-card";
 import { ShiftRow } from "./shift-row";
 
 const DAY_MS = 24 * 60 * 60 * 1000;
@@ -42,6 +43,7 @@ export function EmployeeHome() {
   return (
     <div className="mx-auto grid max-w-4xl gap-6">
       <DashboardGreeting />
+      <ClockCard />
 
       {shifts.isPending ? (
         <Skeleton className="h-36" />

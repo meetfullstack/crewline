@@ -10,6 +10,7 @@ import {
   Plane,
   Repeat,
   UserPlus,
+  UserX,
 } from "lucide-react";
 import Link from "next/link";
 import { DashboardGreeting } from "@/components/app/dashboard-greeting";
@@ -55,9 +56,13 @@ function DashboardBody({ data }: { data: Dashboard }) {
     <>
       <dl className="grid grid-cols-2 gap-3 lg:grid-cols-4">
         <Tile
-          label="On shift now"
+          label="Clocked in now"
           value={`${staffing.onNow}`}
-          detail={`of ${staffing.scheduled} scheduled today`}
+          detail={
+            staffing.notIn
+              ? `${staffing.notIn} scheduled but not in yet`
+              : `of ${staffing.scheduled} scheduled today`
+          }
         />
         <Tile
           label="Today's labour"
@@ -156,6 +161,34 @@ function BudgetTile({ cost, budget }: { cost: number; budget: number | null }) {
 
 const STATE_LABEL = { on: "On now", upcoming: "Coming in", done: "Finished" } as const;
 
+type TodayShift = Dashboard["staffing"]["shifts"][number];
+
+/** Prefer what the clock says over what the schedule says. */
+function statusText(s: TodayShift) {
+  const a = s.attendance;
+  if (!a) return STATE_LABEL[s.state];
+  const late = a.lateMinutes ? ` · ${a.lateMinutes}m late` : "";
+  switch (a.status) {
+    case "WORKING":
+      return `Clocked in${late}`;
+    case "NOT_IN":
+      return "Not in yet";
+    case "COMPLETED":
+      return `Finished${late}`;
+    case "NO_SHOW":
+      return "No-show";
+    case "MISSING_CLOCK_OUT":
+      return "No clock-out";
+    default:
+      return "Coming in";
+  }
+}
+
+const needsAttention = (s: TodayShift) =>
+  s.attendance?.status === "NOT_IN" ||
+  s.attendance?.status === "NO_SHOW" ||
+  s.attendance?.status === "MISSING_CLOCK_OUT";
+
 function nowMinutes(iso: string, timeZone: string) {
   const parts = new Intl.DateTimeFormat("en-CA", {
     timeZone,
@@ -220,7 +253,17 @@ function TodayTimeline({ data }: { data: Dashboard }) {
                 {s.employee ? `${s.employee.firstName} ${s.employee.lastName[0]}.` : "Open shift"}
               </p>
               <p className="truncate text-xs text-muted-foreground">
-                {s.position?.name} · {STATE_LABEL[s.state]}
+                {s.position?.name} ·{" "}
+                <span
+                  className={cn(
+                    needsAttention(s) && "font-medium text-destructive",
+                    !needsAttention(s) &&
+                      (s.attendance?.lateMinutes ?? 0) > 0 &&
+                      "text-amber-700 dark:text-warning",
+                  )}
+                >
+                  {statusText(s)}
+                </span>
               </p>
             </div>
             <div className="relative h-7 rounded-md bg-muted/50">
@@ -306,6 +349,19 @@ function Attention({ data }: { data: Dashboard }) {
       title: `${data.pendingTimeOff.count} time-off request${data.pendingTimeOff.count > 1 ? "s" : ""} to review`,
       detail: first && `Next: ${first.employee.firstName}, ${formatDateOnly(first.startDate)}`,
       href: "/time-off",
+    });
+  }
+  if (data.staffing.notIn) {
+    const who = data.staffing.shifts
+      .filter((s) => s.attendance?.status === "NOT_IN" && s.employee)
+      .map((s) => s.employee!.firstName);
+    items.push({
+      key: "not-in",
+      icon: UserX,
+      tone: "error",
+      title: `${who.length} scheduled ${who.length > 1 ? "people haven't" : "person hasn't"} clocked in`,
+      detail: who.join(", "),
+      href: "/timesheets",
     });
   }
   if (data.swapsAwaitingApproval) {
